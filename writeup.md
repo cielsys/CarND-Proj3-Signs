@@ -2,7 +2,7 @@
 ### Submission writeup: ChrisL
 
 
-![frame 0800final](./ImagesOut/ImagesOut/f0800.png)
+![True-Because-Chart](./Assets/examples/visualization.jpg)
 
 <br/>
 
@@ -16,18 +16,6 @@ The goals / steps of this project are the following:
 * Use the model to make predictions on new images
 * Analyze the softmax probabilities of the new images
 * Summarize the results with a written report
-
-
-[//]: # (Image References)
-
-[image1]: ./examples/visualization.jpg "Visualization"
-[image2]: ./examples/grayscale.jpg "Grayscaling"
-[image3]: ./examples/random_noise.jpg "Random Noise"
-[image4]: ./examples/placeholder.png "Traffic Sign 1"
-[image5]: ./examples/placeholder.png "Traffic Sign 2"
-[image6]: ./examples/placeholder.png "Traffic Sign 3"
-[image7]: ./examples/placeholder.png "Traffic Sign 4"
-[image8]: ./examples/placeholder.png "Traffic Sign 5"
 
 ## Rubric Points
 ### Here I will consider the [rubric points](https://review.udacity.com/#!/rubrics/481/view) individually and describe how I addressed each point in my implementation.  
@@ -129,8 +117,8 @@ If a well known architecture was chosen:
 
 Here are five German traffic signs that I found on the web:
 
-![alt text][image4] ![alt text][image5] ![alt text][image6] 
-![alt text][image7] ![alt text][image8]
+![alt text][image1] ![alt text][image2] ![alt text][image3] 
+![alt text][image4] ![alt text][image5]
 
 The first image might be difficult to classify because ...
 
@@ -171,4 +159,21 @@ For the second image ...
 
 ### Links
 
+<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
+
+
+
+[//]: # (Image References)
+
+[image1]: ./Assets/examples/visualization.jpg "Visualization"
+[image2]: ./Assets/examples/grayscale.jpg "Grayscaling"
+[image3]: ./Assets/examples/random_noise.jpg "Random Noise"
+[image4]: ./Assets/examples/placeholder.png "Traffic Sign 1"
+[image5]: ./Assets/examples/placeholder.png "Traffic Sign 2"
+[image6]: ./Assets/examples/placeholder.png "Traffic Sign 3"
+[image7]: ./Assets/examples/placeholder.png "Traffic Sign 4"
+[image8]: ./Assets/examples/placeholder.png "Traffic Sign 5"
+
+[MyRepo](https://github.com/cielsys/CarND-Proj3-Signs)
+[OriginalRepo](https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project)
 [Rubric](https://review.udacity.com/#!/rubrics/481/view) 

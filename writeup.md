@@ -159,7 +159,7 @@ For the second image ...
 
 ### Links
 
-<img src="examples/laneLines_thirdPass.jpg" width="480" alt="Combined Image" />
+<img src='./Assets/examples/placeholder.png' width="480" alt="Combined Image" />
 
 
 
@@ -175,5 +175,7 @@ For the second image ...
 [image8]: ./Assets/examples/placeholder.png "Traffic Sign 5"
 
 [MyRepo](https://github.com/cielsys/CarND-Proj3-Signs)
+
 [OriginalRepo](https://github.com/udacity/CarND-Traffic-Sign-Classifier-Project)
+
 [Rubric](https://review.udacity.com/#!/rubrics/481/view) 

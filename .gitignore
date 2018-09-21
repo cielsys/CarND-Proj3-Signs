@@ -8,6 +8,7 @@ models
 *.p
 
 nohup.out
+junk*.*
 
 # -*- mode: gitignore; -*-
 junk/

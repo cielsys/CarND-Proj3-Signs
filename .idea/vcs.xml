@@ -2,5 +2,10 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/junk/CarND-LeNet-Lab" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/junk/CarND-TensorFlow-Lab" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/junk/TensorFlow-Examples" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/junk/abha" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/junk/asad" vcs="Git" />
   </component>
 </project>

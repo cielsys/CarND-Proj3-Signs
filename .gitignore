@@ -1,19 +1,24 @@
-Assets/Signs
+# -*- mode: gitignore; -*-
 
+Assets/training
 data
+
+nohup.out
+check.py
+
+junk*.*
+junk/
+[Tt]emp/
+[Tt]mp/
+[Bb]ackup
+
+*.pyc
+.ipynb_checkpoints/
 .ipynb_checkpoints
 *.h5
 models
 *.swp
 *.p
-
-nohup.out
-junk*.*
-
-# -*- mode: gitignore; -*-
-junk/
-*.pyc
-.ipynb_checkpoints/
 
 /url/cache
 /.emacs.desktop
@@ -53,7 +58,5 @@ tramp
 /elpa-*
 site-lisp/package/
 
-[Tt]emp/
-[Tt]mp/
-[Bb]ackup
+
 

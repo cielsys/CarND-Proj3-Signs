@@ -48,10 +48,9 @@ g_doTrainModel = True
 g_doSaveModel = True
 g_doLoadModel = False
 
-g_NUM_EPOCHS = 2
+g_NUM_EPOCHS = 22
 g_BATCH_SIZE = 64
 g_TRAINRATE = 0.001
-g_NUMOUTPUTS = 43
 
 g_doConvertGray = False
 
@@ -74,6 +73,7 @@ class CTrainingDataSet():
     def __init__(self, name="NoName", pickleFileNameIn = None, dictIDToLabel = None):
         self.X = None
         self.y = None
+        self.numLabels = None
         self.count = None
         self.name = name
         self.SetLabelDict(dictIDToLabel)
@@ -88,9 +88,11 @@ class CTrainingDataSet():
         if (self.dictIDToLabel is None):
             self.labelsStr = None
             self.labelsIDs = None
+            self.numLabels = None
         else:
             self.labelsStr = self.dictIDToLabel.values()
             self.labelsIDs = self.dictIDToLabel.keys()
+            self.numLabels = len(self.labelsIDs)
 
     #--------------------------------- ReadPickleFile
     def ReadPickleFile(self, pickleFileNameIn):
@@ -133,8 +135,6 @@ class CImageRec():
 
 #--------------------------------- LoadTestImages
 def LoadTestImages(dirIn, dictIDToLabel):
-    global g_trainSets
-
     imageRecs = []
     fileExt = '*.jpg'
     fileSpec = dirIn + fileExt
@@ -183,11 +183,7 @@ def ReadTrainingSets(training_file, validation_file, testing_file, dictIDToLabel
         dsValidRaw.DebugTruncate(g_truncatedTrainingSetSize)
         dsTestRaw.DebugTruncate(g_truncatedTrainingSetSize)
 
-    g_trainSets.X_train_raw, g_trainSets.y_train_raw = dsTrainRaw.X, dsTrainRaw.y
-    g_trainSets.X_valid_raw, g_trainSets.y_valid_raw = dsValidRaw.X, dsValidRaw.y
-    g_trainSets.X_test_raw, g_trainSets.y_test_raw = dsTestRaw.X, dsTestRaw.y
-
-    print("Training set size (train, validation, test) =({}, {}, {})".format(dsTrainRaw.count, dsValidRaw.count, dsTestRaw.count))
+    print("Raw training set size (train, validation, test) =({}, {}, {})".format(dsTrainRaw.count, dsValidRaw.count, dsTestRaw.count))
     print("Image data shape =", dsTrainRaw.GetXFeatureShape())
     print("Number of classes =", g_trainSets.n_classes)
 
@@ -204,10 +200,6 @@ def ReadLabelDict(signLabelsCSVFileIn):
         infile.readline() # Skip header line 0
         reader = csv.reader(infile)
         dictIDToLabel = OrderedDict( (int(row[0]), row[1]) for row in csv.reader(infile) )
-        g_trainSets.dictIDToLabel = dictIDToLabel
-        g_trainSets.labelsStr = g_trainSets.dictIDToLabel.values()
-        g_trainSets.labelsIDs = g_trainSets.dictIDToLabel.keys()
-        #dictLabelToIndex = OrderedDict( (row[1], int(row[0])) for row in csv.reader(infile) )
     return dictIDToLabel
 
 #--------------------------------- ShuffleDSInPlace
@@ -240,24 +232,6 @@ def GrayscaleNormalizeRawDataSets(listDSRaw):
         listDSNorm.append(dsNorm)
 
     return listDSNorm
-
-# --------------------------------- GrayscaleNormalize
-# def GrayscaleNormalizeAll():
-#     global g_trainSets
-#
-#     print ("\nNormalizing, g_doConvertGray={}...".format(g_doConvertGray), end='', flush=True)
-#     timerStart = time.time()
-#
-#     g_trainSets.X_train_norm = GrayscaleNormalize(g_trainSets.X_train_raw)
-#     g_trainSets.X_valid_norm = GrayscaleNormalize(g_trainSets.X_valid_raw)
-#     g_trainSets.X_test_norm = GrayscaleNormalize(g_trainSets.X_test_raw)
-#
-#     g_trainSets.y_train_norm = g_trainSets.y_train_raw
-#     g_trainSets.y_valid_norm = g_trainSets.y_valid_raw
-#     g_trainSets.y_test_norm = g_trainSets.y_test_raw
-#
-#     timerElapsedS = time.time() - timerStart
-#     print ("{:.1f} seconds".format(timerElapsedS))
 
 # --------------------------------- LeNet
 def LeNet(ph_Xin):
@@ -323,9 +297,8 @@ def DefineTFPlaceHolders():
     numRawInputChannels = GetNumRawInputChannels()
     g_tph.XItems = tf.placeholder(tf.float32, (None, 32, 32, numRawInputChannels))
     g_tph.yLabels = tf.placeholder(tf.int32, (None))
-    g_tph.one_hot_y = tf.one_hot(g_tph.yLabels, g_NUMOUTPUTS)
+    g_tph.one_hot_y = tf.one_hot(g_tph.yLabels, g_trainSets.n_classes)
     g_tph.fc2_dropout_keep_rate = tf.placeholder(tf.float32, name="fc2_dropout_keep_rate")
-
 
 #--------------------------------- TrainingPipeline
 def TrainingPipeline(dsTrainNorm, dsValidNorm):
@@ -421,25 +394,6 @@ def EvalDataSets(dsListIn):
         test_accuracy = EvalDataSet(ds)
         print("Eval DataSet({}) Accuracy = {:.3f}".format(ds.name, test_accuracy))
 
-#--------------------------------- EvalModel
-# def EvalModel():
-#     print("\nEvalModel:")
-#
-#     with tf.Session() as sess:
-#         g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
-#         test_accuracy = evaluate(g_trainSets.X_train_norm, g_trainSets.y_train_norm, g_trainSets.accuracy_operation, g_tph.XItems, g_tph.yLabels)
-#         print("Train Accuracy = {:.3f}".format(test_accuracy))
-#
-#     with tf.Session() as sess:
-#         g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
-#         test_accuracy = evaluate(g_trainSets.X_valid_norm, g_trainSets.y_valid_norm, g_trainSets.accuracy_operation, g_tph.XItems, g_tph.yLabels)
-#         print("Validation Accuracy = {:.3f}".format(test_accuracy))
-#
-#     with tf.Session() as sess:
-#         g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
-#         test_accuracy = evaluate(g_trainSets.X_test_norm, g_trainSets.y_test_norm, g_trainSets.accuracy_operation, g_tph.XItems, g_tph.yLabels)
-#         print("Test Accuracy = {:.3f}".format(test_accuracy))
-
 
 #--------------------------------- EvalImageRecs
 def EvalImageRecs(imageRecs, dictIDToLabel, dsTrainRaw):
@@ -520,7 +474,6 @@ def EvalImageRecs(imageRecs, dictIDToLabel, dsTrainRaw):
 ###################################### PLOTS ###########################
 #--------------------------------- Plot_ImageRecs
 def Plot_ImageRecs(imageRecs):
-    global g_trainSets
     if g_doSupressPlots:
         return
 
@@ -539,13 +492,12 @@ def Plot_ImageRecs(imageRecs):
     plt.show()
 
 #--------------------------------- Plot_LabeledSampleImages
-def Plot_LabeledSampleImages(imgSamples, dictIDToLabel):
-    global g_trainSets
+def Plot_LabeledSampleImages(imgSamples, dictIDToLabel, dsTrainRaw):
     if g_doSupressPlots:
         return
 
     # Get full set of ID's and the corresponding (first) image indices for each of of the IDs
-    imageLabelIDs, imageIndices = np.unique(g_trainSets.y_train_raw, return_index=True)
+    imageLabelIDs, imageIndices = np.unique(dsTrainRaw.y, return_index=True)
 
     figsize = (12,18)
     plotNumCols=4
@@ -553,7 +505,7 @@ def Plot_LabeledSampleImages(imgSamples, dictIDToLabel):
     fig, axes = plt.subplots(plotNumRows, plotNumCols, figsize=figsize, subplot_kw={'xticks': [], 'yticks': []})
 
     for (ax, imageIndex) in zip(axes.flat, imageIndices):
-        labelID = g_trainSets.y_train_raw[imageIndex]
+        labelID = dsTrainRaw.y[imageIndex]
         labelStr = dictIDToLabel[labelID]
         title = "{}:'{}'".format(labelID, labelStr, imageIndex)
         ax.set_title(title, fontsize=8)
@@ -565,21 +517,20 @@ def Plot_LabeledSampleImages(imgSamples, dictIDToLabel):
 
 #--------------------------------- compute_normal_histograms
 def Plot_NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw):
-    global g_trainSets
     if g_doSupressPlots:
         return
 
     # Get full set of ID's and the corresponding (first) image indices for each of of the IDs
-    imageLabelIDs, imageIndices = np.unique(g_trainSets.y_train_raw, return_index=True)
+    imageLabelIDs, imageIndices = np.unique(dsTrainRaw.y, return_index=True)
 
     fig = plt.figure(figsize=(15, 5))
     fig.suptitle("Number of training images")
-    bins=np.arange(g_trainSets.n_classes+1)-0.5
+    bins=np.arange(dsTrainRaw.numLabels+1)-0.5
     plt.hist((dsTrainRaw.y, dsValidRaw.y, dsTestRaw.y), bins = bins, label = ("train", "test", "valid"))
     plt.legend()
     plt.xticks(imageLabelIDs)
     ax = plt.gca()
-    histLables = ["{} : {}".format(label, labelID) for label, labelID in zip(g_trainSets.labelsStr, g_trainSets.labelsIDs)]
+    histLables = ["{} : {}".format(label, labelID) for label, labelID in zip(dsTrainRaw.labelsStr, dsTrainRaw.labelsIDs)]
     ax.set_xticklabels(histLables, rotation=45, rotation_mode="anchor", ha="right")
     fig.subplots_adjust(bottom=0.5)
     #plt.ion()  # turns on interactive mode
@@ -594,8 +545,8 @@ def Main():
     dsTrainNorm, dsValidNorm, dsTestNorm = GrayscaleNormalizeRawDataSets([dsTrainRaw, dsValidRaw, dsTestRaw])
     #GrayscaleNormalizeAll()
 
-    Plot_LabeledSampleImages(dsTrainRaw.X, dictIDToLabel)
-    #Plot_LabeledSampleImages(g_trainSets.X_train_norm) # Doesnt make sense to display this
+    Plot_LabeledSampleImages(dsTrainRaw.X, dictIDToLabel, dsTrainRaw)
+    #Plot_LabeledSampleImages(dsTrainNorm.X) # Doesnt make sense to display this
     Plot_NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw)
 
     TrainingPipeline(dsTrainNorm, dsValidNorm)# Only does training based on g_doTrainModel

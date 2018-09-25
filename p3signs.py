@@ -7,6 +7,7 @@ import time
 import re
 from collections import OrderedDict
 from collections import namedtuple
+import copy
 import matplotlib
 import numpy as np
 import matplotlib.image
@@ -16,22 +17,38 @@ import sklearn.utils
 import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 
+#----------------------- PlottingBackend_Switch()
+def PlottingBackend_Switch(whichBackEnd):
+    import matplotlib
+    matplotlib.use(whichBackEnd, warn=False, force=True)
+    from matplotlib import pyplot as plt
+    print("Switched to:", matplotlib.get_backend())
+
+#PlottingBackend_Switch('QT4Agg')
+import matplotlib.pyplot as plt
+
+#----------------------- checkGPU()
+def checkGPU():
+    from tensorflow.python.client import device_lib
+    print(device_lib.list_local_devices())
+#checkGPU()
+
 #====================== GLOBALS =====================
 # Lower the verbosity of TensorFlow
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=ALL, 1=INFO, 2=WARNING, 3=ERROR
 tf.logging.set_verbosity(tf.logging.ERROR) # DEBUG, INFO, WARN, ERROR, or FATAL
 
-# For testing only
+# For debug testing only
 g_doTests = False
-g_doPlots = False
+g_doSupressPlots = False
 g_figSize = (12,9)
-g_doUseDevDupeSet = False
+g_truncatedTrainingSetSize = 0 # Default: 0 (Use full training sets). Truncation is for speedup of debug cycle
 
 g_doTrainModel = True
 g_doSaveModel = True
 g_doLoadModel = False
 
-g_NUM_EPOCHS = 22
+g_NUM_EPOCHS = 2
 g_BATCH_SIZE = 64
 g_TRAINRATE = 0.001
 g_NUMOUTPUTS = 43
@@ -49,8 +66,54 @@ validation_file = g_TrainingFilesDirIn + "valid.p"
 testing_file = g_TrainingFilesDirIn + "test.p"
 
 g_trainSets = type("DatasetContainer", (object,), {})
+g_tph = type("tfPlaceHolders", (object,), {})
 
-#_numRawInputChannels = None
+#====================== CTrainingDataSet() =====================
+class CTrainingDataSet():
+    # ----------------------- ctor
+    def __init__(self, name="NoName", pickleFileNameIn = None, dictIDToLabel = None):
+        self.X = None
+        self.y = None
+        self.count = None
+        self.name = name
+        self.SetLabelDict(dictIDToLabel)
+        self.pickleFileNameIn = pickleFileNameIn
+
+        if (not pickleFileNameIn is None):
+            self.ReadPickleFile(pickleFileNameIn)
+
+    #--------------------------------- SetLabelDict
+    def SetLabelDict(self, dictIDToLabel):
+        self.dictIDToLabel = dictIDToLabel
+        if (self.dictIDToLabel is None):
+            self.labelsStr = None
+            self.labelsIDs = None
+        else:
+            self.labelsStr = self.dictIDToLabel.values()
+            self.labelsIDs = self.dictIDToLabel.keys()
+
+    #--------------------------------- ReadPickleFile
+    def ReadPickleFile(self, pickleFileNameIn):
+        with open(pickleFileNameIn, mode='rb') as f:
+            dictDS = pickle.load(f)
+            self.X, self.y = dictDS['features'], dictDS['labels']
+            self.count = len(self.X)
+            self.pickleFileNameIn = pickleFileNameIn
+
+    #--------------------------------- GetXFeatureShape
+    def GetXFeatureShape(self):
+        return self.X[0].shape
+
+    #--------------------------------- GetXFeatureShape
+    def GetDSNumLabels(self):
+        return len(set(self.y))
+
+    #--------------------------------- DebugTruncate
+    def DebugTruncate(self, truncSize):
+        self.X = self.X[:truncSize]
+        self.y = self.y[:truncSize]
+        self.count = len(self.X)
+
 
 #====================== CImageRecord() =====================
 class CImageRec():
@@ -68,150 +131,136 @@ class CImageRec():
             self.img = mpimg.imread(self.fileNameFQ)
         return(self.img)
 
+#--------------------------------- LoadTestImages
+def LoadTestImages(dirIn, dictIDToLabel):
+    global g_trainSets
 
-#----------------------- checkGPU()
-def checkGPU():
-    from tensorflow.python.client import device_lib
-    print(device_lib.list_local_devices())
+    imageRecs = []
+    fileExt = '*.jpg'
+    fileSpec = dirIn + fileExt
+    print("\nReading Extra test sets: {}".format(fileSpec))
 
-#----------------------- PlottingBackend_Switch()
-def PlottingBackend_Switch(whichBackEnd):
-    import matplotlib
-    matplotlib.use(whichBackEnd, warn=False, force=True)
-    from matplotlib import pyplot as plt
-    print("Switched to:", matplotlib.get_backend())
+    fileNamesIn = glob.glob(fileSpec)
 
-#PlottingBackend_Switch('QT4Agg')
-import matplotlib.pyplot as plt
+    reExtractLabelNum = "(\d\d)\."
+
+    for fileNameIn in fileNamesIn:
+        labelId = labelIdStr = None
+        reResult = re.search(reExtractLabelNum, fileNameIn)
+        if reResult:
+            labelId = int(reResult.groups()[0])
+            labelStr = dictIDToLabel[labelId]
+
+        fileNameInFQ = os.path.abspath(fileNameIn)
+        imageRec = CImageRec(fileNameInFQ, labelId, labelStr)
+        imageRecs.append(imageRec)
+
+        recStr = "{:<10} type {:02}: {}".format(imageRec.fileNameBase, imageRec.labelId, imageRec.labelStr)
+        print(recStr)
+
+    return(imageRecs)
 
 #--------------------------------- GetNumRawInputChannels
 def GetNumRawInputChannels():
     numRawInputChannels = 1 if g_doConvertGray else 3
     return numRawInputChannels
 
-#--------------------------------- GetNumRawInputChannels
-#def SetNumRawInputChannels(numRawInputChannels):
-#    global _numRawInputChannels
-#    _numRawInputChannels = numRawInputChannels
-
-#--------------------------------- ReadTrainingSet
-def ReadTrainingSet():
-    pass
-
 #--------------------------------- ReadTrainingSets
-def ReadTrainingSets():
+def ReadTrainingSets(training_file, validation_file, testing_file, dictIDToLabel=None):
     global g_trainSets
 
     print("\nReading Training sets...")
-    #DEBUG DUPE
-    if g_doUseDevDupeSet:
-        infile = validation_file
-        with open(infile, mode='rb') as f:
-            dupeSet = pickle.load(f)
-
-        g_trainSets.X_train_raw, g_trainSets.y_train_raw = dupeSet['features'], dupeSet['labels']
-        g_trainSets.X_test_raw, g_trainSets.y_test_raw = dupeSet['features'], dupeSet['labels']
-        g_trainSets.X_valid_raw, g_trainSets.y_valid_raw = dupeSet['features'], dupeSet['labels']
-
-    else:
-        with open(training_file, mode='rb') as f:
-            train = pickle.load(f)
-        with open(validation_file, mode='rb') as f:
-            valid = pickle.load(f)
-        with open(testing_file, mode='rb') as f:
-            test = pickle.load(f)
-
-        g_trainSets.X_train_raw, g_trainSets.y_train_raw = train['features'], train['labels']
-        g_trainSets.X_valid_raw, g_trainSets.y_valid_raw = valid['features'], valid['labels']
-        g_trainSets.X_test_raw, g_trainSets.y_test_raw = test['features'], test['labels']
-
-
-    # TODO: Number of training examples
-    n_train = len(g_trainSets.X_train_raw)
-
-    # TODO: Number of validation examples
-    n_validation = len(g_trainSets.X_valid_raw)
-
-    # TODO: Number of testing examples.
-    n_test = len(g_trainSets.X_test_raw)
-
-    # TODO: What's the shape of an traffic sign image?
-    image_shape = g_trainSets.X_train_raw[0].shape
+    dsTrainRaw = CTrainingDataSet(name="TrainRaw", pickleFileNameIn = training_file, dictIDToLabel = dictIDToLabel)
+    dsValidRaw = CTrainingDataSet(name="ValidRaw", pickleFileNameIn = validation_file, dictIDToLabel = dictIDToLabel)
+    dsTestRaw  = CTrainingDataSet(name="TestRaw", pickleFileNameIn = testing_file, dictIDToLabel = dictIDToLabel)
 
     # TODO: How many unique classes/labels there are in the dataset.
-    g_trainSets.n_classes = len(set(g_trainSets.y_train_raw))
+    g_trainSets.n_classes = dsTrainRaw.GetDSNumLabels()
 
-    if g_doUseDevDupeSet:
-        print("===> Using DevDupeSet!!! <===")
-    print("Training set size (train, test, validation) =({}, {}, {})".format( n_train, n_test, n_validation))
-    print("Image data shape =", image_shape)
+    if g_truncatedTrainingSetSize > 0:
+        print("*************** WARNING: Debug data sets truncated to size {}! *****************".format(g_truncatedTrainingSetSize))
+        dsTrainRaw.DebugTruncate(g_truncatedTrainingSetSize)
+        dsValidRaw.DebugTruncate(g_truncatedTrainingSetSize)
+        dsTestRaw.DebugTruncate(g_truncatedTrainingSetSize)
+
+    g_trainSets.X_train_raw, g_trainSets.y_train_raw = dsTrainRaw.X, dsTrainRaw.y
+    g_trainSets.X_valid_raw, g_trainSets.y_valid_raw = dsValidRaw.X, dsValidRaw.y
+    g_trainSets.X_test_raw, g_trainSets.y_test_raw = dsTestRaw.X, dsTestRaw.y
+
+    print("Training set size (train, validation, test) =({}, {}, {})".format(dsTrainRaw.count, dsValidRaw.count, dsTestRaw.count))
+    print("Image data shape =", dsTrainRaw.GetXFeatureShape())
     print("Number of classes =", g_trainSets.n_classes)
 
+    return dsTrainRaw, dsValidRaw, dsTestRaw
+
 #--------------------------------- ReadLabelDict
-def ReadLabelDict():
+def ReadLabelDict(signLabelsCSVFileIn):
     '''
     Create dictionaries from the csv. Assumes line 0 header and unique indices in order
     '''
     global g_trainSets
 
     with open(signLabelsCSVFileIn, mode='r') as infile:
-        infile.readline() # Skip header lin 0
+        infile.readline() # Skip header line 0
         reader = csv.reader(infile)
-        g_trainSets.dictIDToLabel = OrderedDict( (int(row[0]), row[1]) for row in csv.reader(infile) )
+        dictIDToLabel = OrderedDict( (int(row[0]), row[1]) for row in csv.reader(infile) )
+        g_trainSets.dictIDToLabel = dictIDToLabel
         g_trainSets.labelsStr = g_trainSets.dictIDToLabel.values()
         g_trainSets.labelsIDs = g_trainSets.dictIDToLabel.keys()
         #dictLabelToIndex = OrderedDict( (row[1], int(row[0])) for row in csv.reader(infile) )
+    return dictIDToLabel
+
+#--------------------------------- ShuffleDSInPlace
+def ShuffleDSInPlace(dsIn):
+    dsIn.X, dsIn.y = sklearn.utils.shuffle(dsIn.X, dsIn.y)
 
 #--------------------------------- GrayscaleNormalize
-def ShuffleRawInPlace():
-    global g_trainSets
-    g_trainSets.X_train_raw, g_trainSets.y_train_raw = sklearn.utils.shuffle(g_trainSets.X_train_raw, g_trainSets.y_train_raw)
-    g_trainSets.X_valid_raw, g_trainSets.y_valid_raw = sklearn.utils.shuffle(g_trainSets.X_valid_raw, g_trainSets.y_valid_raw)
-    g_trainSets.X_test_raw, g_trainSets.y_test_raw = sklearn.utils.shuffle(g_trainSets.X_test_raw, g_trainSets.y_test_raw)
-
-#--------------------------------- GrayscaleNormalize
-def GrayscaleNormalize(dsIn):
-
-    dsInf = tf.cast(dsIn, dtype=tf.float32)
+def GrayscaleNormalize(Xin):
+    dsInfloat = tf.cast(Xin, dtype=tf.float32)
 
     if g_doConvertGray:
-        dsInf = tf.image.rgb_to_grayscale(dsInf)
+        dsInfloat = tf.image.rgb_to_grayscale(dsInfloat)
 
-    dsInf = tf.map_fn(lambda img: tf.image.per_image_standardization(img),  dsInf, dtype=tf.float32)
+    dsInfloat = tf.map_fn(lambda img: tf.image.per_image_standardization(img),  dsInfloat, dtype=tf.float32)
 
-    dsOut = []
+    Xout = []
     with tf.Session() as sess:
-        dsOut = dsInf.eval()
+        Xout = dsInfloat.eval()
 
-    return dsOut
+    return Xout
+
+# --------------------------------- GrayscaleNormalizeRawDataSets
+def GrayscaleNormalizeRawDataSets(listDSRaw):
+    listDSNorm = []
+
+    for dsRaw in listDSRaw:
+        dsNorm = copy.copy(dsRaw)
+        dsNorm.X = GrayscaleNormalize(dsRaw.X)
+        dsNorm.name += "Norm"
+        listDSNorm.append(dsNorm)
+
+    return listDSNorm
 
 # --------------------------------- GrayscaleNormalize
-def GrayscaleNormalizeAll():
-    global g_trainSets
-
-    print ("\nNormalizing, g_doConvertGray={}...".format(g_doConvertGray), end='', flush=True)
-    timerStart = time.time()
-
-    if g_doUseDevDupeSet:
-        g_trainSets.X_train_norm = GrayscaleNormalize(g_trainSets.X_train_raw)
-        g_trainSets.X_valid_norm = g_trainSets.X_train_norm
-        g_trainSets.X_test_norm = g_trainSets.X_train_norm
-
-    else:
-        g_trainSets.X_train_norm = GrayscaleNormalize(g_trainSets.X_train_raw)
-        g_trainSets.X_valid_norm = GrayscaleNormalize(g_trainSets.X_valid_raw)
-        g_trainSets.X_test_norm = GrayscaleNormalize(g_trainSets.X_test_raw)
-
-
-    g_trainSets.y_train_norm = g_trainSets.y_train_raw
-    g_trainSets.y_valid_norm = g_trainSets.y_valid_raw
-    g_trainSets.y_test_norm = g_trainSets.y_test_raw
-
-    timerElapsedS = time.time() - timerStart
-    print ("{:.1f} seconds".format(timerElapsedS))
+# def GrayscaleNormalizeAll():
+#     global g_trainSets
+#
+#     print ("\nNormalizing, g_doConvertGray={}...".format(g_doConvertGray), end='', flush=True)
+#     timerStart = time.time()
+#
+#     g_trainSets.X_train_norm = GrayscaleNormalize(g_trainSets.X_train_raw)
+#     g_trainSets.X_valid_norm = GrayscaleNormalize(g_trainSets.X_valid_raw)
+#     g_trainSets.X_test_norm = GrayscaleNormalize(g_trainSets.X_test_raw)
+#
+#     g_trainSets.y_train_norm = g_trainSets.y_train_raw
+#     g_trainSets.y_valid_norm = g_trainSets.y_valid_raw
+#     g_trainSets.y_test_norm = g_trainSets.y_test_raw
+#
+#     timerElapsedS = time.time() - timerStart
+#     print ("{:.1f} seconds".format(timerElapsedS))
 
 # --------------------------------- LeNet
-def LeNet(x):
+def LeNet(ph_Xin):
     # Arguments used for tf.truncated_normal, randomly defines variables for the weights and biases for each layer
     mu = 0
     sigma = 0.1
@@ -221,7 +270,7 @@ def LeNet(x):
     # SOLUTION: Layer 1: Convolutional. Input = 32x32x[1|3]. Output = 28x28x6.
     conv1_W = tf.Variable(tf.truncated_normal(shape=(5, 5, numRawInputChannels, 6), mean=mu, stddev=sigma))
     conv1_b = tf.Variable(tf.zeros(6))
-    conv1 = tf.nn.conv2d(x, conv1_W, strides=[1, 1, 1, 1], padding='VALID') + conv1_b
+    conv1 = tf.nn.conv2d(ph_Xin, conv1_W, strides=[1, 1, 1, 1], padding='VALID') + conv1_b
 
     # SOLUTION: Activation.
     conv1 = tf.nn.relu(conv1)
@@ -259,7 +308,7 @@ def LeNet(x):
     # SOLUTION: Activation.
     fc2 = tf.nn.relu(fc2)
 
-    fc2_drop = tf.nn.dropout(fc2, tph_fc2_dropout_keep_rate)
+    fc2_drop = tf.nn.dropout(fc2, g_tph.fc2_dropout_keep_rate)
 
     # SOLUTION: Layer 5: Fully Connected. Input = 84. Output = 43.
     fc3_W = tf.Variable(tf.truncated_normal(shape=(84, g_trainSets.n_classes), mean=mu, stddev=sigma))
@@ -268,28 +317,31 @@ def LeNet(x):
 
     return logits
 
-numRawInputChannels = GetNumRawInputChannels()
-tph_XItems = tf.placeholder(tf.float32, (None, 32, 32, numRawInputChannels))
-tph_yLabels = tf.placeholder(tf.int32, (None))
-tph_one_hot_y = tf.one_hot(tph_yLabels, g_NUMOUTPUTS)
-tph_fc2_dropout_keep_rate = tf.placeholder(tf.float32, name="tph_fc2_dropout_keep_rate")
+#--------------------------------- TrainingPipeline
+def DefineTFPlaceHolders():
+    global g_tph
+    numRawInputChannels = GetNumRawInputChannels()
+    g_tph.XItems = tf.placeholder(tf.float32, (None, 32, 32, numRawInputChannels))
+    g_tph.yLabels = tf.placeholder(tf.int32, (None))
+    g_tph.one_hot_y = tf.one_hot(g_tph.yLabels, g_NUMOUTPUTS)
+    g_tph.fc2_dropout_keep_rate = tf.placeholder(tf.float32, name="fc2_dropout_keep_rate")
 
 
 #--------------------------------- TrainingPipeline
-def TrainingPipeline():
+def TrainingPipeline(dsTrainNorm, dsValidNorm):
     '''
     Training Pipeline
     '''
     global g_trainSets
 
-    g_trainSets.logits = LeNet(tph_XItems)
-    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=tph_one_hot_y, logits=g_trainSets.logits)
+    g_trainSets.logits = LeNet(g_tph.XItems)
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=g_tph.one_hot_y, logits=g_trainSets.logits)
     loss_operation = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate = g_TRAINRATE)
     training_operation = optimizer.minimize(loss_operation)
 
     #Model Evaluation
-    correct_prediction = tf.equal(tf.argmax(g_trainSets.logits, 1), tf.argmax(tph_one_hot_y, 1))
+    correct_prediction = tf.equal(tf.argmax(g_trainSets.logits, 1), tf.argmax(g_tph.one_hot_y, 1))
     g_trainSets.accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     g_trainSets.saver = tf.train.Saver()
 
@@ -298,25 +350,25 @@ def TrainingPipeline():
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            num_examples = len(g_trainSets.X_train_norm)
+            num_examples = len(dsTrainNorm.X)
 
             print("\nTraining...")
 
             for i in range(g_NUM_EPOCHS):
-                g_trainSets.X_train_norm, g_trainSets.y_train_norm = sklearn.utils.shuffle(g_trainSets.X_train_norm, g_trainSets.y_train_norm)
+                dsTrainNorm.X, dsTrainNorm.y = sklearn.utils.shuffle(dsTrainNorm.X, dsTrainNorm.y)
 
                 for offset in range(0, num_examples, g_BATCH_SIZE):
                     end = offset + g_BATCH_SIZE
-                    batch_x, batch_y = g_trainSets.X_train_norm[offset:end], g_trainSets.y_train_norm[offset:end]
+                    batch_x, batch_y = dsTrainNorm.X[offset:end], dsTrainNorm.y[offset:end]
 
                     dictFeed = {
-                        tph_XItems: batch_x,
-                        tph_yLabels: batch_y,
-                        tph_fc2_dropout_keep_rate: 0.5
+                        g_tph.XItems: batch_x,
+                        g_tph.yLabels: batch_y,
+                        g_tph.fc2_dropout_keep_rate: 0.5
                     }
                     sess.run(training_operation, feed_dict=dictFeed)
 
-                validation_accuracy = evaluate(g_trainSets.X_valid_norm, g_trainSets.y_valid_norm, g_trainSets.accuracy_operation, tph_XItems, tph_yLabels)
+                validation_accuracy = evaluate(dsValidNorm.X, dsValidNorm.y, g_trainSets.accuracy_operation, g_tph.XItems, g_tph.yLabels)
                 print("EPOCH {:02}... ".format(i + 1), end='', flush=True)
                 print("Validation Accuracy = {:.3f}".format(validation_accuracy))
 
@@ -324,7 +376,6 @@ def TrainingPipeline():
             print("Training took {:.2f} seconds".format(timerElapsedS))
 
             if g_doSaveModel:
-                #g_trainSets.saver.save(sess, './lenet')
                 g_trainSets.saver.save(sess, g_sessionSavesName)
                 print("Model saved")
             else:
@@ -347,7 +398,7 @@ def evaluate(X_data, y_data, accuracy_operation, x, y):
         dictFeed = {
             x: batch_x,
             y: batch_y,
-            tph_fc2_dropout_keep_rate: 1.0
+            g_tph.fc2_dropout_keep_rate: 1.0
         }
 
         accuracy = sess.run(accuracy_operation, feed_dict=dictFeed)
@@ -355,28 +406,43 @@ def evaluate(X_data, y_data, accuracy_operation, x, y):
 
     return total_accuracy / num_examples
 
+#--------------------------------- EvalDataSet
+def EvalDataSet(dsIn):
+    with tf.Session() as sess:
+        g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
+        test_accuracy = evaluate(dsIn.X, dsIn.y, g_trainSets.accuracy_operation, g_tph.XItems, g_tph.yLabels)
+        return test_accuracy
+
+#--------------------------------- EvalDataSets
+def EvalDataSets(dsListIn):
+    print("\nEval Model on datasets")
+
+    for ds in dsListIn:
+        test_accuracy = EvalDataSet(ds)
+        print("Eval DataSet({}) Accuracy = {:.3f}".format(ds.name, test_accuracy))
+
 #--------------------------------- EvalModel
-def EvalModel():
-    print("\nEvalModel:")
-
-    with tf.Session() as sess:
-        g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
-        test_accuracy = evaluate(g_trainSets.X_train_norm, g_trainSets.y_train_norm, g_trainSets.accuracy_operation, tph_XItems, tph_yLabels)
-        print("Train Accuracy = {:.3f}".format(test_accuracy))
-
-    with tf.Session() as sess:
-        g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
-        test_accuracy = evaluate(g_trainSets.X_test_norm, g_trainSets.y_test_norm, g_trainSets.accuracy_operation, tph_XItems, tph_yLabels)
-        print("Test Accuracy = {:.3f}".format(test_accuracy))
-
-    with tf.Session() as sess:
-        g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
-        test_accuracy = evaluate(g_trainSets.X_valid_norm, g_trainSets.y_valid_norm, g_trainSets.accuracy_operation, tph_XItems, tph_yLabels)
-        print("Validation Accuracy = {:.3f}".format(test_accuracy))
+# def EvalModel():
+#     print("\nEvalModel:")
+#
+#     with tf.Session() as sess:
+#         g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
+#         test_accuracy = evaluate(g_trainSets.X_train_norm, g_trainSets.y_train_norm, g_trainSets.accuracy_operation, g_tph.XItems, g_tph.yLabels)
+#         print("Train Accuracy = {:.3f}".format(test_accuracy))
+#
+#     with tf.Session() as sess:
+#         g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
+#         test_accuracy = evaluate(g_trainSets.X_valid_norm, g_trainSets.y_valid_norm, g_trainSets.accuracy_operation, g_tph.XItems, g_tph.yLabels)
+#         print("Validation Accuracy = {:.3f}".format(test_accuracy))
+#
+#     with tf.Session() as sess:
+#         g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
+#         test_accuracy = evaluate(g_trainSets.X_test_norm, g_trainSets.y_test_norm, g_trainSets.accuracy_operation, g_tph.XItems, g_tph.yLabels)
+#         print("Test Accuracy = {:.3f}".format(test_accuracy))
 
 
 #--------------------------------- EvalImageRecs
-def EvalImageRecs(imageRecs):
+def EvalImageRecs(imageRecs, dictIDToLabel, dsTrainRaw):
     global g_trainSets
     print("\nEvalModelExtra: ", end='', flush=True)
 
@@ -388,16 +454,16 @@ def EvalImageRecs(imageRecs):
 
     with tf.Session() as sess:
         g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
-        test_accuracy = evaluate(X_items, y_labels, g_trainSets.accuracy_operation, tph_XItems, tph_yLabels)
+        test_accuracy = evaluate(X_items, y_labels, g_trainSets.accuracy_operation, g_tph.XItems, g_tph.yLabels)
         print("Overall Test Accuracy = {:.3f}".format(test_accuracy))
 
     with tf.Session() as sess:
         g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
 
         dictFeed = {
-            tph_XItems: X_items,
+            g_tph.XItems: X_items,
             #y: batch_y,
-            tph_fc2_dropout_keep_rate: 1.0,
+            g_tph.fc2_dropout_keep_rate: 1.0,
         }
 
         sfmax = sess.run(tf.nn.softmax(g_trainSets.logits), feed_dict=dictFeed)
@@ -406,44 +472,43 @@ def EvalImageRecs(imageRecs):
         for imageIndex in range(numTestImages):
             imageRec = imageRecs[imageIndex]
             recStr = "Image[{}]=({:>10}) type {:02}: '{}'".format(imageIndex, imageRec.fileNameBase, imageRec.labelId, imageRec.labelStr)
-
-            #print("Image[{}]=({:<10})".format(imageIndex, imageRecs[imageIndex].fileNameBase))
             print(recStr)
             print("Top 3 Match IDs{} => probabilites: {}".format(topk[1][imageIndex], topk[0][imageIndex]))
-            #print("Top 3 indexes: {0}".format(topk[1][imageIndex]))
             print()
 
+    if (g_doSupressPlots):
+        return
 
     fig, axes = plt.subplots(numTestImages, 4, figsize=g_figSize, subplot_kw={'xticks': [], 'yticks': []})
     fig.subplots_adjust(hspace=0.5, wspace=0.2)
     matchRanksStr = ["1st Match", "2nd Match", "3rd Match"]
 
     # Get full set of ID's and the corresponding (first) image indices for each of of the IDs
-    imageLabelIDs, imageIndices = np.unique(g_trainSets.y_train_raw, return_index=True)
+    imageLabelIDs, imageIndices = np.unique(dsTrainRaw.y, return_index=True)
 
-    for testImageIndex in range(numTestImages):
-        title = "{}: {}".format(y_labels[testImageIndex], g_trainSets.dictIDToLabel[y_labels[testImageIndex]])
-        xLabel = "TestImg: {}".format(imageRecs[testImageIndex].fileNameBase)
+    for imageIndex, imageRec in enumerate(imageRecs):
+        title = "{}: {}".format(y_labels[imageIndex], dictIDToLabel[y_labels[imageIndex]])
+        xLabel = "TestImg: {}".format(imageRec.fileNameBase)
 
-        ax = axes[testImageIndex][0]
-        ax.imshow(imageRecs[testImageIndex].GetImage(), interpolation='sinc')
+        ax = axes[imageIndex][0]
+        ax.imshow(imageRec.GetImage(), interpolation='sinc')
         ax.set_title(title, fontsize=11)
         ax.set_xlabel(xLabel, fontsize=9)
 
-        for matchRank, matchingLabelID in enumerate(topk.indices[testImageIndex]):
+        for matchRank, matchingLabelID in enumerate(topk.indices[imageIndex]):
 
-            matchScore = topk.values[testImageIndex][matchRank]
+            matchScore = topk.values[imageIndex][matchRank]
             matchingImageIndex = imageIndices[matchingLabelID]
-            matchingImage = g_trainSets.X_train_raw[matchingImageIndex]
-            matchingLabelStr = g_trainSets.dictIDToLabel[matchingLabelID]
+            matchingImage = dsTrainRaw.X[matchingImageIndex]
+            matchingLabelStr = dictIDToLabel[matchingLabelID]
 
-            isMatchCorrect = (matchingLabelID == y_labels[testImageIndex])
+            isMatchCorrect = (matchingLabelID == y_labels[imageIndex])
             matchColor = "green" if isMatchCorrect else "black"
 
             title = "{}: {}".format(matchingLabelID, matchingLabelStr)
             xLabel = "{}: {:0.3}".format(matchRanksStr[matchRank], matchScore)
 
-            ax = axes[testImageIndex][matchRank + 1]
+            ax = axes[imageIndex][matchRank + 1]
             ax.imshow(matchingImage, interpolation='sinc')
             ax.set_title(title, fontsize=9, color=matchColor)
             ax.set_xlabel(xLabel, fontsize=9, color=matchColor)
@@ -456,12 +521,12 @@ def EvalImageRecs(imageRecs):
 #--------------------------------- Plot_ImageRecs
 def Plot_ImageRecs(imageRecs):
     global g_trainSets
-    # Get full set of ID's and the corresponding (first) image indices for each of of the IDs
-    #imageLabelIDs, imageIndices = np.unique(g_trainSets.y_train_raw, return_index=True)
+    if g_doSupressPlots:
+        return
 
     figsize = (12,4)
     plotNumCols=4
-    plotNumRows= math.ciel(len(imageRecs)/plotNumCols)
+    plotNumRows= math.ceil(len(imageRecs)/plotNumCols)
     fig, axes = plt.subplots(plotNumRows, plotNumCols, figsize=figsize, subplot_kw={'xticks': [], 'yticks': []})
 
     for (ax, imageRec) in zip(axes.flat, imageRecs):
@@ -474,8 +539,11 @@ def Plot_ImageRecs(imageRecs):
     plt.show()
 
 #--------------------------------- Plot_LabeledSampleImages
-def Plot_LabeledSampleImages(imgSamples):
+def Plot_LabeledSampleImages(imgSamples, dictIDToLabel):
     global g_trainSets
+    if g_doSupressPlots:
+        return
+
     # Get full set of ID's and the corresponding (first) image indices for each of of the IDs
     imageLabelIDs, imageIndices = np.unique(g_trainSets.y_train_raw, return_index=True)
 
@@ -486,7 +554,7 @@ def Plot_LabeledSampleImages(imgSamples):
 
     for (ax, imageIndex) in zip(axes.flat, imageIndices):
         labelID = g_trainSets.y_train_raw[imageIndex]
-        labelStr = g_trainSets.dictIDToLabel[labelID]
+        labelStr = dictIDToLabel[labelID]
         title = "{}:'{}'".format(labelID, labelStr, imageIndex)
         ax.set_title(title, fontsize=8)
         ax.imshow(imgSamples[imageIndex], cmap='viridis', interpolation='sinc')
@@ -496,15 +564,18 @@ def Plot_LabeledSampleImages(imgSamples):
     plt.show()
 
 #--------------------------------- compute_normal_histograms
-def Plot_NumTrainingImagesHistogram():
+def Plot_NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw):
     global g_trainSets
+    if g_doSupressPlots:
+        return
+
     # Get full set of ID's and the corresponding (first) image indices for each of of the IDs
     imageLabelIDs, imageIndices = np.unique(g_trainSets.y_train_raw, return_index=True)
 
     fig = plt.figure(figsize=(15, 5))
     fig.suptitle("Number of training images")
     bins=np.arange(g_trainSets.n_classes+1)-0.5
-    plt.hist((g_trainSets.y_train_raw, g_trainSets.y_test_raw, g_trainSets.y_valid_raw), bins = bins, label = ("train", "test", "valid"))
+    plt.hist((dsTrainRaw.y, dsValidRaw.y, dsTestRaw.y), bins = bins, label = ("train", "test", "valid"))
     plt.legend()
     plt.xticks(imageLabelIDs)
     ax = plt.gca()
@@ -514,57 +585,26 @@ def Plot_NumTrainingImagesHistogram():
     #plt.ion()  # turns on interactive mode
     plt.show()
 
-
-###################################### TESTS ###########################
-###################################### TESTS ###########################
-###################################### TESTS ###########################
-#--------------------------------- LoadTestImages
-def LoadTestImages(dirIn):
-    global g_trainSets
-    imageRecs = []
-    fileExt = '*.jpg'
-    fileSpec = dirIn + fileExt
-    print("\nReading Extra test sets: {}".format(fileSpec))
-
-    fileNamesIn = glob.glob(fileSpec)
-
-    reExtractLabelNum = "(\d\d)\."
-
-    for fileNameIn in fileNamesIn:
-        labelId = labelIdStr = None
-        reResult = re.search(reExtractLabelNum, fileNameIn)
-        if reResult:
-            labelId = int(reResult.groups()[0])
-            labelStr = g_trainSets.dictIDToLabel[labelId]
-
-        fileNameInFQ = os.path.abspath(fileNameIn)
-        imageRec = CImageRec(fileNameInFQ, labelId, labelStr)
-        imageRecs.append(imageRec)
-
-        recStr = "{:<10} type {:02}: {}".format(imageRec.fileNameBase, imageRec.labelId, imageRec.labelStr)
-        print(recStr)
-
-    return(imageRecs)
-
 #====================== Main() =====================
 def Main():
-    ReadLabelDict()
+    dictIDToLabel = ReadLabelDict(signLabelsCSVFileIn)
+    dsTrainRaw, dsValidRaw, dsTestRaw = ReadTrainingSets(training_file, validation_file, testing_file, dictIDToLabel)
+    DefineTFPlaceHolders()
 
-    if g_doTests:
-        checkGPU()
+    dsTrainNorm, dsValidNorm, dsTestNorm = GrayscaleNormalizeRawDataSets([dsTrainRaw, dsValidRaw, dsTestRaw])
+    #GrayscaleNormalizeAll()
 
-    ReadTrainingSets()
-    GrayscaleNormalizeAll()
-    if g_doPlots:
-        Plot_LabeledSampleImages(g_trainSets.X_train_raw)
-        #Plot_LabeledSampleImages(g_trainSets.X_train_norm) # Doesnt make sense to display this
-        Plot_NumTrainingImagesHistogram()
-        Plot_ImageRecs(imageRecs)
+    Plot_LabeledSampleImages(dsTrainRaw.X, dictIDToLabel)
+    #Plot_LabeledSampleImages(g_trainSets.X_train_norm) # Doesnt make sense to display this
+    Plot_NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw)
 
-    TrainingPipeline()# Only does training based on g_doTrainModel
-    EvalModel()
-    imageRecs = LoadTestImages(g_finalTestFilesDirIn)
-    EvalImageRecs(imageRecs)
+    TrainingPipeline(dsTrainNorm, dsValidNorm)# Only does training based on g_doTrainModel
+    EvalDataSets([dsTrainNorm, dsValidNorm, dsTestNorm])
+    #EvalModel()
+
+    imageRecs = LoadTestImages(g_finalTestFilesDirIn, dictIDToLabel)
+    Plot_ImageRecs(imageRecs)
+    EvalImageRecs(imageRecs, dictIDToLabel, dsTrainRaw)
 
 #====================== Main Invocation =====================
 if ((__name__ == '__main__')):

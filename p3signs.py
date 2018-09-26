@@ -17,6 +17,10 @@ import sklearn.utils
 import tensorflow as tf
 from tensorflow.contrib.layers import flatten
 
+# Local Imports
+from ctrainingdataset import CTrainingDataSet, CreateDataSetFromImageFiles
+
+
 #----------------------- PlottingBackend_Switch()
 def PlottingBackend_Switch(whichBackEnd):
     import matplotlib
@@ -44,11 +48,11 @@ g_doSupressPlots = False
 g_figSize = (12,9)
 g_truncatedTrainingSetSize = 0 # Default: 0 (Use full training sets). Truncation is for speedup of debug cycle
 
-g_doTrainModel = True
+g_doTrainModel = False
 g_doSaveModel = True
-g_doLoadModel = False
+#g_doLoadModel = False
 
-g_NUM_EPOCHS = 22
+g_NUM_EPOCHS = 2
 g_BATCH_SIZE = 64
 g_TRAINRATE = 0.001
 
@@ -67,99 +71,6 @@ testing_file = g_TrainingFilesDirIn + "test.p"
 g_trainSets = type("DatasetContainer", (object,), {})
 g_tph = type("tfPlaceHolders", (object,), {})
 
-#====================== CTrainingDataSet() =====================
-class CTrainingDataSet():
-    # ----------------------- ctor
-    def __init__(self, name="NoName", pickleFileNameIn = None, dictIDToLabel = None):
-        self.X = None
-        self.y = None
-        self.numLabels = None
-        self.count = None
-        self.name = name
-        self.SetLabelDict(dictIDToLabel)
-        self.pickleFileNameIn = pickleFileNameIn
-
-        if (not pickleFileNameIn is None):
-            self.ReadPickleFile(pickleFileNameIn)
-
-    #--------------------------------- SetLabelDict
-    def SetLabelDict(self, dictIDToLabel):
-        self.dictIDToLabel = dictIDToLabel
-        if (self.dictIDToLabel is None):
-            self.labelsStr = None
-            self.labelsIDs = None
-            self.numLabels = None
-        else:
-            self.labelsStr = self.dictIDToLabel.values()
-            self.labelsIDs = self.dictIDToLabel.keys()
-            self.numLabels = len(self.labelsIDs)
-
-    #--------------------------------- ReadPickleFile
-    def ReadPickleFile(self, pickleFileNameIn):
-        with open(pickleFileNameIn, mode='rb') as f:
-            dictDS = pickle.load(f)
-            self.X, self.y = dictDS['features'], dictDS['labels']
-            self.count = len(self.X)
-            self.pickleFileNameIn = pickleFileNameIn
-
-    #--------------------------------- GetXFeatureShape
-    def GetXFeatureShape(self):
-        return self.X[0].shape
-
-    #--------------------------------- GetXFeatureShape
-    def GetDSNumLabels(self):
-        return len(set(self.y))
-
-    #--------------------------------- DebugTruncate
-    def DebugTruncate(self, truncSize):
-        self.X = self.X[:truncSize]
-        self.y = self.y[:truncSize]
-        self.count = len(self.X)
-
-
-#====================== CImageRecord() =====================
-class CImageRec():
-    # ----------------------- ctor
-    def __init__(self, fileNameInFQ=None, labelId=None, labelStr=None):
-        self.fileNameBase = os.path.basename(fileNameInFQ)
-        self.fileNameFQ = fileNameInFQ
-        self.labelId = labelId
-        self.labelStr = labelStr
-        self.img = None
-
-    # ----------------------- GetImage()
-    def GetImage(self):
-        if self.img is None:
-            self.img = mpimg.imread(self.fileNameFQ)
-        return(self.img)
-
-#--------------------------------- LoadTestImages
-def LoadTestImages(dirIn, dictIDToLabel):
-    imageRecs = []
-    fileExt = '*.jpg'
-    fileSpec = dirIn + fileExt
-    print("\nReading Extra test sets: {}".format(fileSpec))
-
-    fileNamesIn = glob.glob(fileSpec)
-
-    reExtractLabelNum = "(\d\d)\."
-
-    for fileNameIn in fileNamesIn:
-        labelId = labelIdStr = None
-        reResult = re.search(reExtractLabelNum, fileNameIn)
-        if reResult:
-            labelId = int(reResult.groups()[0])
-            labelStr = dictIDToLabel[labelId]
-
-        fileNameInFQ = os.path.abspath(fileNameIn)
-        imageRec = CImageRec(fileNameInFQ, labelId, labelStr)
-        imageRecs.append(imageRec)
-
-        recStr = "{:<10} type {:02}: {}".format(imageRec.fileNameBase, imageRec.labelId, imageRec.labelStr)
-        print(recStr)
-
-    return(imageRecs)
-
 #--------------------------------- GetNumRawInputChannels
 def GetNumRawInputChannels():
     numRawInputChannels = 1 if g_doConvertGray else 3
@@ -174,8 +85,7 @@ def ReadTrainingSets(training_file, validation_file, testing_file, dictIDToLabel
     dsValidRaw = CTrainingDataSet(name="ValidRaw", pickleFileNameIn = validation_file, dictIDToLabel = dictIDToLabel)
     dsTestRaw  = CTrainingDataSet(name="TestRaw", pickleFileNameIn = testing_file, dictIDToLabel = dictIDToLabel)
 
-    # TODO: How many unique classes/labels there are in the dataset.
-    g_trainSets.n_classes = dsTrainRaw.GetDSNumLabels()
+    #g_trainSets.n_classes = dsTrainRaw.GetDSNumLabels()
 
     if g_truncatedTrainingSetSize > 0:
         print("*************** WARNING: Debug data sets truncated to size {}! *****************".format(g_truncatedTrainingSetSize))
@@ -185,7 +95,7 @@ def ReadTrainingSets(training_file, validation_file, testing_file, dictIDToLabel
 
     print("Raw training set size (train, validation, test) =({}, {}, {})".format(dsTrainRaw.count, dsValidRaw.count, dsTestRaw.count))
     print("Image data shape =", dsTrainRaw.GetXFeatureShape())
-    print("Number of classes =", g_trainSets.n_classes)
+    print("Number of classes =", dsTrainRaw.GetDSNumLabels())
 
     return dsTrainRaw, dsValidRaw, dsTestRaw
 
@@ -201,10 +111,6 @@ def ReadLabelDict(signLabelsCSVFileIn):
         reader = csv.reader(infile)
         dictIDToLabel = OrderedDict( (int(row[0]), row[1]) for row in csv.reader(infile) )
     return dictIDToLabel
-
-#--------------------------------- ShuffleDSInPlace
-def ShuffleDSInPlace(dsIn):
-    dsIn.X, dsIn.y = sklearn.utils.shuffle(dsIn.X, dsIn.y)
 
 #--------------------------------- GrayscaleNormalize
 def GrayscaleNormalize(Xin):
@@ -233,8 +139,17 @@ def GrayscaleNormalizeRawDataSets(listDSRaw):
 
     return listDSNorm
 
+#--------------------------------- TrainingPipeline
+def DefineTFPlaceHolders(numLabels):
+    global g_tph
+    numRawInputChannels = GetNumRawInputChannels()
+    g_tph.XItems = tf.placeholder(tf.float32, (None, 32, 32, numRawInputChannels))
+    g_tph.yLabels = tf.placeholder(tf.int32, (None))
+    g_tph.one_hot_y = tf.one_hot(g_tph.yLabels, numLabels)
+    g_tph.fc2_dropout_keep_rate = tf.placeholder(tf.float32, name="fc2_dropout_keep_rate")
+
 # --------------------------------- LeNet
-def LeNet(ph_Xin):
+def LeNet(ph_Xin, numLabels):
     # Arguments used for tf.truncated_normal, randomly defines variables for the weights and biases for each layer
     mu = 0
     sigma = 0.1
@@ -285,29 +200,22 @@ def LeNet(ph_Xin):
     fc2_drop = tf.nn.dropout(fc2, g_tph.fc2_dropout_keep_rate)
 
     # SOLUTION: Layer 5: Fully Connected. Input = 84. Output = 43.
-    fc3_W = tf.Variable(tf.truncated_normal(shape=(84, g_trainSets.n_classes), mean=mu, stddev=sigma))
-    fc3_b = tf.Variable(tf.zeros(g_trainSets.n_classes))
+    fc3_W = tf.Variable(tf.truncated_normal(shape=(84, numLabels), mean=mu, stddev=sigma))
+    fc3_b = tf.Variable(tf.zeros(numLabels))
     logits = tf.matmul(fc2_drop, fc3_W) + fc3_b
 
     return logits
 
 #--------------------------------- TrainingPipeline
-def DefineTFPlaceHolders():
-    global g_tph
-    numRawInputChannels = GetNumRawInputChannels()
-    g_tph.XItems = tf.placeholder(tf.float32, (None, 32, 32, numRawInputChannels))
-    g_tph.yLabels = tf.placeholder(tf.int32, (None))
-    g_tph.one_hot_y = tf.one_hot(g_tph.yLabels, g_trainSets.n_classes)
-    g_tph.fc2_dropout_keep_rate = tf.placeholder(tf.float32, name="fc2_dropout_keep_rate")
-
-#--------------------------------- TrainingPipeline
-def TrainingPipeline(dsTrainNorm, dsValidNorm):
+def TrainingPipeline(dsTrainNorm, dsValidNorm, numEpochs, batchSize):
     '''
     Training Pipeline
     '''
     global g_trainSets
 
-    g_trainSets.logits = LeNet(g_tph.XItems)
+    numLabels = dsTrainNorm.GetDSNumLabels()
+
+    g_trainSets.logits = LeNet(g_tph.XItems, numLabels)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=g_tph.one_hot_y, logits=g_trainSets.logits)
     loss_operation = tf.reduce_mean(cross_entropy)
     optimizer = tf.train.AdamOptimizer(learning_rate = g_TRAINRATE)
@@ -323,26 +231,26 @@ def TrainingPipeline(dsTrainNorm, dsValidNorm):
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            num_examples = len(dsTrainNorm.X)
+            num_examples = len(dsTrainNorm.count)
 
-            print("\nTraining...")
+            print("\nTraining for {} EPOCHS...".format(numEpochs))
 
-            for i in range(g_NUM_EPOCHS):
-                dsTrainNorm.X, dsTrainNorm.y = sklearn.utils.shuffle(dsTrainNorm.X, dsTrainNorm.y)
+            for i in range(numEpochs):
+                dsShuffled_X, dsShuffled_y = sklearn.utils.shuffle(dsTrainNorm.X, dsTrainNorm.y)
 
-                for offset in range(0, num_examples, g_BATCH_SIZE):
-                    end = offset + g_BATCH_SIZE
-                    batch_x, batch_y = dsTrainNorm.X[offset:end], dsTrainNorm.y[offset:end]
+                for offset in range(0, num_examples, batchSize):
+                    end = offset + batchSize
+                    batch_X, batch_y = dsShuffled_X[offset:end], dsShuffled_y[offset:end]
 
                     dictFeed = {
-                        g_tph.XItems: batch_x,
+                        g_tph.XItems: batch_X,
                         g_tph.yLabels: batch_y,
                         g_tph.fc2_dropout_keep_rate: 0.5
                     }
                     sess.run(training_operation, feed_dict=dictFeed)
 
                 validation_accuracy = evaluate(dsValidNorm.X, dsValidNorm.y, g_trainSets.accuracy_operation, g_tph.XItems, g_tph.yLabels)
-                print("EPOCH {:02}... ".format(i + 1), end='', flush=True)
+                print("Epoch {:02}... ".format(i + 1), end='', flush=True)
                 print("Validation Accuracy = {:.3f}".format(validation_accuracy))
 
             timerElapsedS = time.time() - timerStart
@@ -359,19 +267,19 @@ def TrainingPipeline(dsTrainNorm, dsValidNorm):
         print("Training... Skipped...")
 
 #--------------------------------- evaluate
-def evaluate(X_data, y_data, accuracy_operation, x, y):
+def evaluate(X_data, y_data, batchSize, accuracy_operation, tph):
     num_examples = len(X_data)
     total_accuracy = 0
 
     sess = tf.get_default_session()
 
-    for offset in range(0, num_examples, g_BATCH_SIZE):
-        batch_x, batch_y = X_data[offset:offset + g_BATCH_SIZE], y_data[offset:offset + g_BATCH_SIZE]
+    for offset in range(0, num_examples, batchSize):
+        batch_x, batch_y = X_data[offset:offset + batchSize], y_data[offset:offset + batchSize]
 
         dictFeed = {
-            x: batch_x,
-            y: batch_y,
-            g_tph.fc2_dropout_keep_rate: 1.0
+            tph.XItems: batch_x,
+            tph.yLabels: batch_y,
+            tph.fc2_dropout_keep_rate: 1.0
         }
 
         accuracy = sess.run(accuracy_operation, feed_dict=dictFeed)
@@ -383,39 +291,32 @@ def evaluate(X_data, y_data, accuracy_operation, x, y):
 def EvalDataSet(dsIn):
     with tf.Session() as sess:
         g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
-        test_accuracy = evaluate(dsIn.X, dsIn.y, g_trainSets.accuracy_operation, g_tph.XItems, g_tph.yLabels)
+        test_accuracy = evaluate(dsIn.X, dsIn.y, g_BATCH_SIZE, g_trainSets.accuracy_operation, g_tph)
+        dsIn.testAccuracy = test_accuracy
         return test_accuracy
 
 #--------------------------------- EvalDataSets
 def EvalDataSets(dsListIn):
     print("\nEval Model on datasets")
 
+    accuracyList = []
     for ds in dsListIn:
         test_accuracy = EvalDataSet(ds)
         print("Eval DataSet({}) Accuracy = {:.3f}".format(ds.name, test_accuracy))
+        accuracyList.append(test_accuracy)
 
+    return(accuracyList)
 
-#--------------------------------- EvalImageRecs
-def EvalImageRecs(imageRecs, dictIDToLabel, dsTrainRaw):
+#--------------------------------- CalcSoftmaxTopK
+def CalcSoftmaxTopK(dsInNorm):
     global g_trainSets
     print("\nEvalModelExtra: ", end='', flush=True)
-
-    numTestImages = len(imageRecs)
-
-    X_items =  np.array([imageRec.GetImage() for imageRec in imageRecs])
-    X_items = GrayscaleNormalize(X_items)
-    y_labels = [imageRec.labelId for imageRec in imageRecs]
-
-    with tf.Session() as sess:
-        g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
-        test_accuracy = evaluate(X_items, y_labels, g_trainSets.accuracy_operation, g_tph.XItems, g_tph.yLabels)
-        print("Overall Test Accuracy = {:.3f}".format(test_accuracy))
 
     with tf.Session() as sess:
         g_trainSets.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
 
         dictFeed = {
-            g_tph.XItems: X_items,
+            g_tph.XItems: dsInNorm.X,
             #y: batch_y,
             g_tph.fc2_dropout_keep_rate: 1.0,
         }
@@ -423,29 +324,36 @@ def EvalImageRecs(imageRecs, dictIDToLabel, dsTrainRaw):
         sfmax = sess.run(tf.nn.softmax(g_trainSets.logits), feed_dict=dictFeed)
         topk = sess.run(tf.nn.top_k(tf.constant(sfmax), k=3))
 
-        for imageIndex in range(numTestImages):
-            imageRec = imageRecs[imageIndex]
-            recStr = "Image[{}]=({:>10}) type {:02}: '{}'".format(imageIndex, imageRec.fileNameBase, imageRec.labelId, imageRec.labelStr)
+        for imageIndex in range(dsInNorm.count):
+            recStr = "Image[{}]=({:>10}) type {:02}: '{}'".format(imageIndex, dsInNorm.imageNames[imageIndex], dsInNorm.y[imageIndex], dsInNorm.yStrings[imageIndex])
             print(recStr)
             print("Top 3 Match IDs{} => probabilites: {}".format(topk[1][imageIndex], topk[0][imageIndex]))
             print()
 
-    if (g_doSupressPlots):
-        return
+    return topk
 
-    fig, axes = plt.subplots(numTestImages, 4, figsize=g_figSize, subplot_kw={'xticks': [], 'yticks': []})
+###################################### PLOTS ###########################
+###################################### PLOTS ###########################
+###################################### PLOTS ###########################
+
+def Plot_TestAndPredictions(dsTestRaw, dsTrainRaw, topk):
+    global g_trainSets
+    #if (g_doSupressPlots):
+    #    return
+
+    fig, axes = plt.subplots(dsTestRaw.count, 4, figsize=g_figSize, subplot_kw={'xticks': [], 'yticks': []})
     fig.subplots_adjust(hspace=0.5, wspace=0.2)
     matchRanksStr = ["1st Match", "2nd Match", "3rd Match"]
 
     # Get full set of ID's and the corresponding (first) image indices for each of of the IDs
     imageLabelIDs, imageIndices = np.unique(dsTrainRaw.y, return_index=True)
 
-    for imageIndex, imageRec in enumerate(imageRecs):
-        title = "{}: {}".format(y_labels[imageIndex], dictIDToLabel[y_labels[imageIndex]])
-        xLabel = "TestImg: {}".format(imageRec.fileNameBase)
+    for imageIndex in range(dsTestRaw.count):
+        title = "{}: {}".format(dsTestRaw.y[imageIndex], dsTestRaw.yStrings[imageIndex])
+        xLabel = "TestImg: {}".format(dsTestRaw.imageNames[imageIndex])
 
         ax = axes[imageIndex][0]
-        ax.imshow(imageRec.GetImage(), interpolation='sinc')
+        ax.imshow(dsTestRaw.X[imageIndex], interpolation='sinc')
         ax.set_title(title, fontsize=11)
         ax.set_xlabel(xLabel, fontsize=9)
 
@@ -454,9 +362,9 @@ def EvalImageRecs(imageRecs, dictIDToLabel, dsTrainRaw):
             matchScore = topk.values[imageIndex][matchRank]
             matchingImageIndex = imageIndices[matchingLabelID]
             matchingImage = dsTrainRaw.X[matchingImageIndex]
-            matchingLabelStr = dictIDToLabel[matchingLabelID]
+            matchingLabelStr = dsTestRaw.dictIDToLabel[matchingLabelID]
 
-            isMatchCorrect = (matchingLabelID == y_labels[imageIndex])
+            isMatchCorrect = (matchingLabelID == dsTestRaw.y[imageIndex])
             matchColor = "green" if isMatchCorrect else "black"
 
             title = "{}: {}".format(matchingLabelID, matchingLabelStr)
@@ -469,49 +377,36 @@ def EvalImageRecs(imageRecs, dictIDToLabel, dsTrainRaw):
 
     plt.show()
 
-###################################### PLOTS ###########################
-###################################### PLOTS ###########################
-###################################### PLOTS ###########################
-#--------------------------------- Plot_ImageRecs
-def Plot_ImageRecs(imageRecs):
-    if g_doSupressPlots:
-        return
-
-    figsize = (12,4)
-    plotNumCols=4
-    plotNumRows= math.ceil(len(imageRecs)/plotNumCols)
-    fig, axes = plt.subplots(plotNumRows, plotNumCols, figsize=figsize, subplot_kw={'xticks': [], 'yticks': []})
-
-    for (ax, imageRec) in zip(axes.flat, imageRecs):
-        recStr = "{:<10} type {:02}: '{}'".format(imageRec.fileNameBase, imageRec.labelId, imageRec.labelStr)
-        ax.set_title(recStr, fontsize=8)
-        ax.imshow(imageRec.GetImage(), cmap='viridis', interpolation='sinc')
-
-    plt.tight_layout()
-    #plt.ion()  # turns on interactive mode
-    plt.show()
-
 #--------------------------------- Plot_LabeledSampleImages
-def Plot_LabeledSampleImages(imgSamples, dictIDToLabel, dsTrainRaw):
+def Plot_LabeledSampleImages(dsIn, figtitle=None):
     if g_doSupressPlots:
         return
+
+    if (figtitle is None):
+        figtitle = "Sample of dataset '{}'".format(dsIn.name)
 
     # Get full set of ID's and the corresponding (first) image indices for each of of the IDs
-    imageLabelIDs, imageIndices = np.unique(dsTrainRaw.y, return_index=True)
+    imageLabelIDs, imageIndices = np.unique(dsIn.y, return_index=True)
+    numImages = len(imageLabelIDs)
+    plotNumCols= min(6, numImages)
+    plotNumRows= int(math.ceil(numImages/plotNumCols))
+    figsize = (2 * plotNumCols + 1.5, 2 * plotNumRows + 1.5 )
 
-    figsize = (12,18)
-    plotNumCols=4
-    plotNumRows=11
     fig, axes = plt.subplots(plotNumRows, plotNumCols, figsize=figsize, subplot_kw={'xticks': [], 'yticks': []})
+    fig.suptitle(figtitle, y=1.0, fontsize=16)
 
     for (ax, imageIndex) in zip(axes.flat, imageIndices):
-        labelID = dsTrainRaw.y[imageIndex]
-        labelStr = dictIDToLabel[labelID]
+        labelID = dsIn.y[imageIndex]
+        labelStr = dsIn.dictIDToLabel[labelID]
+        labelStr = (labelStr[:24] +"...") if len(labelStr) > 27 else labelStr
         title = "{}:'{}'".format(labelID, labelStr, imageIndex)
-        ax.set_title(title, fontsize=8)
-        ax.imshow(imgSamples[imageIndex], cmap='viridis', interpolation='sinc')
+        ylabel = dsIn.imageNames[imageIndex]
 
-    plt.tight_layout()
+        ax.set_ylabel(ylabel, fontsize=9)
+        ax.set_title(title, fontsize=9)
+        ax.imshow(dsIn.X[imageIndex], cmap='viridis', interpolation='sinc')
+
+    plt.tight_layout() # (pad=-0.75 w_pad=0.5, h_pad=1.0)
     #plt.ion()  # turns on interactive mode
     plt.show()
 
@@ -538,24 +433,32 @@ def Plot_NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw):
 
 #====================== Main() =====================
 def Main():
+    numEpochs = g_NUM_EPOCHS
+    batchSize = g_BATCH_SIZE
+
     dictIDToLabel = ReadLabelDict(signLabelsCSVFileIn)
     dsTrainRaw, dsValidRaw, dsTestRaw = ReadTrainingSets(training_file, validation_file, testing_file, dictIDToLabel)
-    DefineTFPlaceHolders()
 
+    DefineTFPlaceHolders(dsTrainRaw.GetDSNumLabels())
     dsTrainNorm, dsValidNorm, dsTestNorm = GrayscaleNormalizeRawDataSets([dsTrainRaw, dsValidRaw, dsTestRaw])
     #GrayscaleNormalizeAll()
 
-    Plot_LabeledSampleImages(dsTrainRaw.X, dictIDToLabel, dsTrainRaw)
+    Plot_LabeledSampleImages(dsTrainRaw)
     #Plot_LabeledSampleImages(dsTrainNorm.X) # Doesnt make sense to display this
     Plot_NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw)
 
-    TrainingPipeline(dsTrainNorm, dsValidNorm)# Only does training based on g_doTrainModel
+    TrainingPipeline(dsTrainNorm, dsValidNorm, numEpochs, batchSize)
     EvalDataSets([dsTrainNorm, dsValidNorm, dsTestNorm])
     #EvalModel()
 
-    imageRecs = LoadTestImages(g_finalTestFilesDirIn, dictIDToLabel)
-    Plot_ImageRecs(imageRecs)
-    EvalImageRecs(imageRecs, dictIDToLabel, dsTrainRaw)
+    dsExtraRaw = CreateDataSetFromImageFiles(g_finalTestFilesDirIn, dictIDToLabel)
+    Plot_LabeledSampleImages(dsExtraRaw)
+
+    dsExtraNorm, = GrayscaleNormalizeRawDataSets([dsExtraRaw])
+    EvalDataSets([dsExtraNorm])
+
+    topk = CalcSoftmaxTopK(dsExtraNorm)
+    Plot_TestAndPredictions(dsExtraRaw, dsTrainRaw, topk)
 
 #====================== Main Invocation =====================
 if ((__name__ == '__main__')):

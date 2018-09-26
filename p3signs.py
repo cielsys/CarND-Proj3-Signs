@@ -23,20 +23,17 @@ import signplot
 
 signplot.g_doSupressPlots = False
 
-# Lower the verbosity of TensorFlow
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=ALL, 1=INFO, 2=WARNING, 3=ERROR
-tf.logging.set_verbosity(tf.logging.ERROR) # DEBUG, INFO, WARN, ERROR, or FATAL
-
-# For debug testing only
-g_truncatedTrainingSetSize = 0 # Default: 0 (Use full training sets). Truncation is for speedup of debug cycle
-g_doTrainModel = False
-g_doSaveModel = True
-
-g_NUM_EPOCHS = 2
-g_BATCH_SIZE = 64
+#====================== GLOBALS =====================
+g_NUM_EPOCHS = 15
+g_BATCH_SIZE = 32
 g_TRAINRATE = 0.001
 
 g_doConvertGray = False
+
+# For debug testing only
+g_truncatedTrainingSetSize = 0 # Default: 0 (Use full training sets). Truncation is for speedup of debug cycle
+g_doTrainModel = True
+g_doSaveModel = True
 
 # I/O Directories
 g_TrainingFilesDirIn = "./Assets/training/"
@@ -50,8 +47,15 @@ training_file = g_TrainingFilesDirIn + "train.p"
 validation_file = g_TrainingFilesDirIn + "valid.p"
 testing_file = g_TrainingFilesDirIn + "test.p"
 
+# Global object containers
 g_tfObjs = type("TensorFlowObjectsContainer", (object,), {})
-g_tfObjs.tph = None
+g_tfObjs.tph = None # Assigned in DefineTFPlaceHolders()
+
+#====================== CODE =====================
+
+# Lower the verbosity of TensorFlow
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # 0=ALL, 1=INFO, 2=WARNING, 3=ERROR
+tf.logging.set_verbosity(tf.logging.ERROR) # DEBUG, INFO, WARN, ERROR, or FATAL
 
 #----------------------- checkGPU()
 def checkGPU():
@@ -185,9 +189,9 @@ def TrainingPipeline(dsTrainNorm, dsValidNorm, tfObjs, numEpochs, batchSize):
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-            num_examples = len(dsTrainNorm.count)
+            num_examples = dsTrainNorm.count
 
-            print("\nTraining for {} EPOCHS...".format(numEpochs))
+            print("\nTraining for {} Epochs...".format(numEpochs))
 
             for i in range(numEpochs):
                 dsShuffled_X, dsShuffled_y = sklearn.utils.shuffle(dsTrainNorm.X, dsTrainNorm.y)
@@ -203,7 +207,7 @@ def TrainingPipeline(dsTrainNorm, dsValidNorm, tfObjs, numEpochs, batchSize):
                     }
                     sess.run(training_operation, feed_dict=dictFeed)
 
-                validation_accuracy = evaluate(dsValidNorm.X, dsValidNorm.y, tfObjs.accuracy_operation, tfObjs.tph.XItems, tfObjs.tph.yLabels)
+                validation_accuracy = evaluate(dsValidNorm.X, dsValidNorm.y, tfObjs, batchSize)
                 print("Epoch {:02}... ".format(i + 1), end='', flush=True)
                 print("Validation Accuracy = {:.3f}".format(validation_accuracy))
 

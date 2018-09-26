@@ -2,15 +2,13 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="783049a9-98cc-41e2-bd12-df7bb062d938" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/ctrainingdataset.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/signplot.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/CarND-LeNet-Lab/LeNet-Lab-Solution.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/junk/CarND-LeNet-Lab/LeNet-Lab-Solution.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/TensorFlow-Examples/examples/3_NeuralNetworks/multilayer_perceptron.py" beforeDir="false" afterPath="$PROJECT_DIR$/junk/TensorFlow-Examples/examples/3_NeuralNetworks/multilayer_perceptron.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/TensorFlow-Examples/notebooks/3_NeuralNetworks/neural_network.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/junk/TensorFlow-Examples/notebooks/3_NeuralNetworks/neural_network.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/abha/Traffic_Sign_Classifier.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/junk/abha/Traffic_Sign_Classifier.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/asad/Traffic_Sign_Classifier.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/junk/asad/Traffic_Sign_Classifier.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/p3signs.py" beforeDir="false" afterPath="$PROJECT_DIR$/p3signs.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/signplot.py" beforeDir="false" afterPath="$PROJECT_DIR$/signplot.py" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -49,20 +47,20 @@
         <counts>
           <entry key="dummy" value="119" />
           <entry key="md" value="122" />
-          <entry key="py" value="9616" />
+          <entry key="py" value="9708" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
           <entry key="Markdown" value="122" />
           <entry key="PLAIN_TEXT" value="119" />
-          <entry key="Python" value="9616" />
+          <entry key="Python" value="9708" />
         </counts>
       </usages-collector>
     </session>
   </component>
   <component name="FileEditorManager">
-    <splitter split-orientation="horizontal" split-proportion="0.44770715">
+    <splitter split-orientation="horizontal" split-proportion="0.56717616">
       <split-first>
         <leaf SIDE_TABS_SIZE_LIMIT_KEY="375">
           <file pinned="false" current-in-tab="false">
@@ -86,11 +84,11 @@
           <file pinned="false" current-in-tab="true">
             <entry file="file://$PROJECT_DIR$/p3signs.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="396">
-                  <caret line="22" selection-start-line="22" selection-end-line="22" />
+                <state relative-caret-position="157">
+                  <caret line="28" column="19" selection-start-line="28" selection-start-column="19" selection-end-line="28" selection-end-column="19" />
                   <folding>
                     <element signature="e#0#9#0" expanded="true" />
-                    <marker date="1537936810724" expanded="true" signature="2344:2743" ph="..." />
+                    <marker date="1537940726340" expanded="true" signature="2514:2913" ph="..." />
                   </folding>
                 </state>
               </provider>
@@ -105,11 +103,11 @@
               <file pinned="false" current-in-tab="false">
                 <entry file="file://$PROJECT_DIR$/p3signs.py">
                   <provider selected="true" editor-type-id="text-editor">
-                    <state relative-caret-position="2050">
-                      <caret line="295" column="40" selection-start-line="295" selection-start-column="40" selection-end-line="295" selection-end-column="40" />
+                    <state relative-caret-position="1888">
+                      <caret line="299" column="40" selection-start-line="299" selection-start-column="40" selection-end-line="299" selection-end-column="40" />
                       <folding>
                         <element signature="e#0#9#0" expanded="true" />
-                        <marker date="1537936810724" expanded="true" signature="2344:2743" ph="..." />
+                        <marker date="1537940726340" expanded="true" signature="2514:2913" ph="..." />
                       </folding>
                     </state>
                   </provider>
@@ -139,8 +137,8 @@
               <file pinned="false" current-in-tab="true">
                 <entry file="file://$PROJECT_DIR$/signplot.py">
                   <provider selected="true" editor-type-id="text-editor">
-                    <state relative-caret-position="686">
-                      <caret line="40" column="40" lean-forward="true" selection-start-line="40" selection-start-column="40" selection-end-line="40" selection-end-column="40" />
+                    <state relative-caret-position="254">
+                      <caret line="19" selection-start-line="19" selection-end-line="20" />
                       <folding>
                         <element signature="e#0#9#0" expanded="true" />
                       </folding>
@@ -156,10 +154,10 @@
                 <entry file="file://$PROJECT_DIR$/p3signs.py">
                   <provider selected="true" editor-type-id="text-editor">
                     <state relative-caret-position="144">
-                      <caret line="297" column="19" selection-start-line="297" selection-start-column="19" selection-end-line="297" selection-end-column="19" />
+                      <caret line="301" column="19" selection-start-line="301" selection-start-column="19" selection-end-line="301" selection-end-column="19" />
                       <folding>
                         <element signature="e#0#9#0" expanded="true" />
-                        <marker date="1537936810724" expanded="true" signature="2344:2743" ph="..." />
+                        <marker date="1537940726340" expanded="true" signature="2514:2913" ph="..." />
                       </folding>
                     </state>
                   </provider>
@@ -206,6 +204,7 @@
       <find>g_tph</find>
       <find>tfObjs</find>
       <find>copy</find>
+      <find>g_figSize</find>
       <find>TrainingPipeline</find>
     </findStrings>
     <replaceStrings>
@@ -235,8 +234,8 @@
         <option value="$PROJECT_DIR$/check.py" />
         <option value="$PROJECT_DIR$/junk.py" />
         <option value="$PROJECT_DIR$/ctrainingdataset.py" />
-        <option value="$PROJECT_DIR$/p3signs.py" />
         <option value="$PROJECT_DIR$/signplot.py" />
+        <option value="$PROJECT_DIR$/p3signs.py" />
       </list>
     </option>
   </component>
@@ -678,23 +677,23 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/p3signs.py">
+    <entry file="file://$PROJECT_DIR$/signplot.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2050">
-          <caret line="295" column="40" selection-start-line="295" selection-start-column="40" selection-end-line="295" selection-end-column="40" />
+        <state relative-caret-position="254">
+          <caret line="19" selection-start-line="19" selection-end-line="20" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
-            <marker date="1537936810724" expanded="true" signature="2344:2743" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/signplot.py">
+    <entry file="file://$PROJECT_DIR$/p3signs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="686">
-          <caret line="40" column="40" lean-forward="true" selection-start-line="40" selection-start-column="40" selection-end-line="40" selection-end-column="40" />
+        <state relative-caret-position="157">
+          <caret line="28" column="19" selection-start-line="28" selection-start-column="19" selection-end-line="28" selection-end-column="19" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
+            <marker date="1537940726340" expanded="true" signature="2514:2913" ph="..." />
           </folding>
         </state>
       </provider>

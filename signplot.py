@@ -60,6 +60,7 @@ def PredictionComparison(dsTestRaw, dsTrainRaw, topk, figtitle=None):
 
             isMatchCorrect = (matchingLabelID == dsTestRaw.y[imageIndex])
             matchColor = "green" if isMatchCorrect else "black"
+            matchFontSize = 12 if isMatchCorrect else 9
 
             labelID = matchingLabelID
             labelStr = matchingLabelStr
@@ -71,7 +72,7 @@ def PredictionComparison(dsTestRaw, dsTrainRaw, topk, figtitle=None):
             ax = axes[imageIndex][matchRank + 1]
             ax.imshow(matchingImage, interpolation='sinc')
             ax.set_title(title, fontsize=9)
-            ax.set_xlabel(xLabel, fontsize=9, color=matchColor)
+            ax.set_xlabel(xLabel, fontsize=matchFontSize, color=matchColor)
             ax.set_ylabel(ylabel, fontsize=9)
 
     plt.tight_layout(pad=0.75) # (pad=-0.75 w_pad=0.5, h_pad=1.0)

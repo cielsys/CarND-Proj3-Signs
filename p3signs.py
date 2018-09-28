@@ -9,26 +9,30 @@ from collections import OrderedDict
 import copy
 
 import numpy as np
-import matplotlib
-import matplotlib.image
-import matplotlib.image as mpimg
+#import matplotlib
+#import matplotlib.image
+#import matplotlib.image as mpimg
 
 import sklearn.utils
 import tensorflow as tf
 from tensorflow.contrib.layers import flatten
+import skimage
+import skimage.transform
 
 # Local Imports
 from ctrainingdataset import CTrainingDataSet, CreateDataSetFromImageFiles, ReadTrainingSets, ReadLabelDict
 import signplot
 
-signplot.g_doSupressPlots = False
+signplot.g_doShowPlots = False
 
 #====================== GLOBALS =====================
-g_NUM_EPOCHS = 15
-g_BATCH_SIZE = 32
+seed = np.random.randint(42)
+
+g_NUM_EPOCHS = 22
+g_BATCH_SIZE = 128
 g_TRAINRATE = 0.001
 
-g_doConvertGray = False
+g_doConvertGray = True
 
 # For debug testing only
 g_truncatedTrainingSetSize = 0 # Default: 0 (Use full training sets). Truncation is for speedup of debug cycle
@@ -39,17 +43,13 @@ g_doSaveModel = True
 g_TrainingFilesDirIn = "./Assets/training/"
 g_finalTestFilesDirIn = "./Assets/finalTest/"
 g_sessionSavesDir = "./Assets/tfSessionSaves/"
-g_sessionSavesName = g_sessionSavesDir + "lenet"
 
 # Input files
-signLabelsCSVFileIn = g_TrainingFilesDirIn + "signnames.csv"
-training_file = g_TrainingFilesDirIn + "train.p"
-validation_file = g_TrainingFilesDirIn + "valid.p"
-testing_file = g_TrainingFilesDirIn + "test.p"
-
-# Global object containers
-g_tfObjs = type("TensorFlowObjectsContainer", (object,), {})
-g_tfObjs.tph = None # Assigned in DefineTFPlaceHolders()
+g_sessionSavesName = g_sessionSavesDir + "lenet"
+g_signLabelsCSVFileIn = g_TrainingFilesDirIn + "signnames.csv"
+g_training_file = g_TrainingFilesDirIn + "train.p"
+g_validation_file = g_TrainingFilesDirIn + "valid.p"
+g_testing_file = g_TrainingFilesDirIn + "test.p"
 
 #====================== CODE =====================
 
@@ -68,30 +68,45 @@ def GetNumRawInputChannels():
     numRawInputChannels = 1 if g_doConvertGray else 3
     return numRawInputChannels
 
-#--------------------------------- GrayscaleNormalize
-def GrayscaleNormalize(Xin):
-    dsInfloat = tf.cast(Xin, dtype=tf.float32)
+#--------------------------------- Normalize
+def GreyScale(Xin):
+    print ("\nConverting to greyscale...", end='', flush=True)
+    Xout = tf.image.rgb_to_grayscale(Xin)
+    print("done.")
+    return(Xout)
+
+
+#--------------------------------- Normalize
+def NormalizeImageTensor(Xin):
+    #XInfloat = tf.cast(Xin, dtype=tf.float32)
 
     if g_doConvertGray:
-        dsInfloat = tf.image.rgb_to_grayscale(dsInfloat)
+        Xin = tf.image.rgb_to_grayscale(Xin)
 
-    dsInfloat = tf.map_fn(lambda img: tf.image.per_image_standardization(img),  dsInfloat, dtype=tf.float32)
+    XNorm = tf.map_fn(lambda img: tf.image.per_image_standardization(img),  Xin, dtype=tf.float32)
 
+    # Convert back to ndarray
     Xout = []
     with tf.Session() as sess:
-        Xout = dsInfloat.eval()
+       Xout = XNorm.eval()
 
     return Xout
 
-# --------------------------------- GrayscaleNormalizeRawDataSets
-def GrayscaleNormalizeRawDataSets(listDSRaw):
+# --------------------------------- NormalizeDataSets
+def NormalizeDataSets(listDSRaw):
+    print ("\nNormalizing...convertGrayScale =={}. ".format(g_doConvertGray), end='', flush=True)
+    timerStart = time.time()
+
     listDSNorm = []
 
     for dsRaw in listDSRaw:
         dsNorm = copy.copy(dsRaw)
-        dsNorm.X = GrayscaleNormalize(dsRaw.X)
+        dsNorm.X = NormalizeImageTensor(dsRaw.X)
         dsNorm.name += "Norm"
         listDSNorm.append(dsNorm)
+
+    timerElapsedS = time.time() - timerStart
+    print ("{:.1f} seconds".format(timerElapsedS))
 
     return listDSNorm
 
@@ -103,6 +118,7 @@ def DefineTFPlaceHolders(numLabels):
     tph.XItems = tf.placeholder(tf.float32, (None, 32, 32, numRawInputChannels))
     tph.yLabels = tf.placeholder(tf.int32, (None))
     tph.one_hot_y = tf.one_hot(tph.yLabels, numLabels)
+    tph.fc1_dropout_keep_rate = tf.placeholder(tf.float32, name="fc1_dropout_keep_rate")
     tph.fc2_dropout_keep_rate = tf.placeholder(tf.float32, name="fc2_dropout_keep_rate")
 
     return tph
@@ -148,10 +164,12 @@ def LeNet(tph, numLabels):
     # SOLUTION: Activation.
     fc1 = tf.nn.relu(fc1)
 
+    fc1_drop = tf.nn.dropout(fc1, tph.fc1_dropout_keep_rate)
+
     # SOLUTION: Layer 4: Fully Connected. Input = 120. Output = 84.
     fc2_W = tf.Variable(tf.truncated_normal(shape=(120, 84), mean=mu, stddev=sigma))
     fc2_b = tf.Variable(tf.zeros(84))
-    fc2 = tf.matmul(fc1, fc2_W) + fc2_b
+    fc2 = tf.matmul(fc1_drop, fc2_W) + fc2_b
 
     # SOLUTION: Activation.
     fc2 = tf.nn.relu(fc2)
@@ -203,7 +221,8 @@ def TrainingPipeline(dsTrainNorm, dsValidNorm, tfObjs, numEpochs, batchSize):
                     dictFeed = {
                         tfObjs.tph.XItems: batch_X,
                         tfObjs.tph.yLabels: batch_y,
-                        tfObjs.tph.fc2_dropout_keep_rate: 0.5
+                        tfObjs.tph.fc1_dropout_keep_rate: 0.4,
+                        tfObjs.tph.fc2_dropout_keep_rate: 0.4
                     }
                     sess.run(training_operation, feed_dict=dictFeed)
 
@@ -237,7 +256,8 @@ def evaluate(X_data, y_data, tfObjs, batchSize):
         dictFeed = {
             tfObjs.tph.XItems: batch_x,
             tfObjs.tph.yLabels: batch_y,
-            tfObjs.tph.fc2_dropout_keep_rate: 1.0
+            tfObjs.tph.fc1_dropout_keep_rate: 1.0,
+            tfObjs.tph.fc2_dropout_keep_rate: 1.0,
         }
 
         accuracy = sess.run(tfObjs.accuracy_operation, feed_dict=dictFeed)
@@ -275,6 +295,7 @@ def CalcSoftmaxTopK(dsInNorm, tfObjs):
         dictFeed = {
             tfObjs.tph.XItems: dsInNorm.X,
             #y: batch_y,
+            tfObjs.tph.fc1_dropout_keep_rate: 1.0,
             tfObjs.tph.fc2_dropout_keep_rate: 1.0,
         }
 
@@ -289,32 +310,171 @@ def CalcSoftmaxTopK(dsInNorm, tfObjs):
 
     return topk
 
+#--------------------------------- ScaleImage
+def ZoomImage(imgIn, scaleMaxPercent = 10):
+    scaleMaxPercent = scaleMaxPercent / 100.0
+    (height, width, channels) = imgIn.shape
+
+    scale = np.random.uniform(low=1.0 - scaleMaxPercent, high=1.0 + scaleMaxPercent, size=None)
+    imgScaled = skimage.transform.rescale(imgIn, scale=scale, mode='constant', multichannel=True, anti_aliasing=True)
+
+    #imgResized = skimage.transform.resize(imgScaled, (height, width), mode='constant', anti_aliasing=True)
+
+    imgScaledF = tf.image.convert_image_dtype(imgScaled, dtype=tf.float32)
+    ts = tf.image.resize_image_with_crop_or_pad(imgScaledF, height, width)
+    with tf.Session() as sess:
+        imgZoomed = ts.eval()
+
+    return imgZoomed
+
+#--------------------------------- Rotate
+def AugmentImage(Xin, rotAngleMaxDeg=10):
+    #print ("Rotating random({}) degrees...".format(rotAngleDegMax), end='', flush=True)
+    #timerStart = time.time()
+    #Xinfloat = tf.cast(np.array(Xin), dtype=tf.float32)
+
+    (numImages, height, width, channels) = Xin.shape
+
+    rotAngleMaxDegRad = rotAngleMaxDeg * math.pi / 180
+    tRandomRot = tf.random_uniform([numImages], minval=-rotAngleMaxDegRad, maxval=rotAngleMaxDegRad, dtype=tf.float32)
+
+    #XZoomed = np.array([ZoomImage(img, scaleMaxPercent=50) for img in Xin])
+
+    #################### RANDOM ROTATION
+    XRot = tf.contrib.image.rotate(Xin, tRandomRot, interpolation='BILINEAR')
+    #XRot = tf.map_fn(lambda img: tf.contrib.image.rotate(img, rotAngleRad, interpolation='BILINEAR'),  Xin, dtype=tf.float32)
+
+
+    #################### RANDOM BRIGHTNESS SHIFT
+    XBright = tf.map_fn(lambda img: tf.image.random_brightness(img, max_delta=0.3),  XRot, dtype=tf.uint8)
+    #XBright = tf.image.random_brightness(XRot, tRandomBright)
+
+    with tf.Session() as sess:
+       Xout = XBright.eval()
+
+    #timerElapsedS = time.time() - timerStart
+    #print ("Rotate done. {:.1f} seconds".format(timerElapsedS))
+    return Xout
+
+
+# --------------------------------- CreateAugmentedDataSet
+def CreateAugmentedDataSet(dsIn, numAugsNeeded):
+    print("Augmenting data subset '{}'. ".format(dsIn.name), end="", flush=True)
+    timerStart = time.time()
+
+    dsAugOut = copy.copy(dsIn)
+    dsAugOut.name += dsIn.name + ".Aug"
+    #bigXinput = np.empty(shape=(0, 32, 32, 3))
+    bigXinput = np.empty(shape=(numAugsNeeded, 32, 32, 3), dtype=np.uint8)
+    dsAugOut.y = np.empty(shape=(numAugsNeeded))
+    dsAugOut.yStrings = []
+
+    tmpX = None
+    startIndex = 0
+    while numAugsNeeded > 0:
+        numAugsCur = numAugsNeeded if numAugsNeeded < dsIn.count else dsIn.count
+        endIndex = startIndex + numAugsCur
+
+        bigXinput[startIndex:endIndex, :, :, :] = dsIn.X[ : numAugsCur, :, :, :]
+        dsAugOut.y[startIndex:endIndex] = dsIn.y[ : numAugsCur]
+        dsAugOut.yStrings += dsIn.yStrings[ : numAugsCur]
+
+        startIndex += numAugsCur
+        numAugsNeeded -= numAugsCur
+
+        #tmpX = bigXinput
+
+    dsAugOut.X = AugmentImage(bigXinput, rotAngleMaxDeg=10)
+    dsAugOut.count = len(dsAugOut.X)
+
+    timerElapsedS = time.time() - timerStart
+    print("Augmentation data subset done in {:.1f} seconds".format(timerElapsedS))
+    return dsAugOut
+
+# --------------------------------- CreateAugmentedDataSets
+def CreateAugmentedDataSets(dsIn):
+    print("\nAugmenting dataset '{}'.".format(dsIn.name))
+    timerStart = time.time()
+
+    listDSInSegregated = dsIn.SegregateByLabel()
+    (longestDSIndex, longestDS) = max(enumerate(listDSInSegregated), key = lambda tupIndDS: tupIndDS[1].count)
+
+    print("\nBiggest image class is '{}' with {} images.".format(longestDSIndex, longestDS.count))
+    targetLen = longestDS.count
+
+
+    listDSAugmentsSegregated = []
+
+    for yIndexCur, dsInSegCur in enumerate(listDSInSegregated):
+        numAugsNeeded = targetLen - dsInSegCur.count
+        print("label[{:02}] has/needs = {:3} / {:3}... ".format(yIndexCur, dsInSegCur.count, numAugsNeeded), end="", flush=True)
+        dsAugCur = CreateAugmentedDataSet(dsInSegCur, numAugsNeeded)
+        listDSAugmentsSegregated.append(dsAugCur)
+
+
+
+    # Unsegregate augments, then combine with originals to make complete training set
+    dsOutAugments = copy.copy(dsIn)
+    dsOutAugments.name = "Aug({})".format(dsIn.name)
+    dsOutAugments.X = []
+    dsOutAugments.y = []
+    dsOutAugments.yStrings = []
+    dsOutAugments.imageNames = []
+
+    for dsInSegCur in listDSAugmentsSegregated:
+        dsOutAugments.X += dsInSegCur.X.tolist()
+        dsOutAugments.y += dsInSegCur.y.tolist()
+        dsOutAugments.yStrings += dsInSegCur.yStrings
+        dsOutAugments.imageNames += dsInSegCur.imageNames
+    dsOutAugments.X = np.array(dsOutAugments.X, dtype=np.uint8)
+    dsOutAugments.y = np.array(dsOutAugments.y, dtype=np.uint8)
+    dsOutAugments.count = len(dsOutAugments.y)
+
+    dsComplete = copy.copy(dsIn)
+    dsComplete.Concatenate(dsOutAugments)
+    dsComplete.name += dsIn.name + "+Aug"
+
+    timerElapsedS = time.time() - timerStart
+    print("\nAugmentation Done in {:.1f} seconds".format(timerElapsedS))
+
+    return listDSInSegregated, listDSAugmentsSegregated, dsOutAugments, dsComplete
+
+
 #====================== Main() =====================
 def Main():
-    global g_tfObjs
-
     numEpochs = g_NUM_EPOCHS
     batchSize = g_BATCH_SIZE
+    # Sort-of global object containers
+    tfObjs = type("TensorFlowObjectsContainer", (object,), {})
+    tfObjs.tph = None  # Assigned in DefineTFPlaceHolders()
 
-    dictIDToLabel = ReadLabelDict(signLabelsCSVFileIn)
-    dsTrainRaw, dsValidRaw, dsTestRaw = ReadTrainingSets(training_file, validation_file, testing_file, dictIDToLabel, truncatedTrainingSetSize = g_truncatedTrainingSetSize)
+    dictIDToLabel = ReadLabelDict(g_signLabelsCSVFileIn)
 
-    g_tfObjs.tph = DefineTFPlaceHolders(dsTrainRaw.GetDSNumLabels())
-    dsTrainNorm, dsValidNorm, dsTestNorm = GrayscaleNormalizeRawDataSets([dsTrainRaw, dsValidRaw, dsTestRaw])
+    dsTrainRaw, dsValidRaw, dsTestRaw = ReadTrainingSets(g_training_file, g_validation_file, g_testing_file, dictIDToLabel, truncatedTrainingSetSize = g_truncatedTrainingSetSize)
+
+    listDSInSegregated, listDSOutAugmentedSegregated, dsOutAugments, dsTrainComplete = CreateAugmentedDataSets(dsTrainRaw)
+    signplot.PlotListOfDataSets(listDSOutAugmentedSegregated, "augments")# **************DEBUG****************
+
 
     signplot.LabeledSampleImages(dsTrainRaw)
     signplot.NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw)
 
-    TrainingPipeline(dsTrainNorm, dsValidNorm, g_tfObjs, numEpochs, batchSize)
-    EvalDataSets([dsTrainNorm, dsValidNorm, dsTestNorm], g_tfObjs, batchSize)
+    #dsTrainNorm, dsValidNorm, dsTestNorm = NormalizeDataSets([dsTrainRaw, dsValidRaw, dsTestRaw])
+    dsTrainNormComplete, dsValidNorm, dsTestNorm = NormalizeDataSets([dsTrainComplete, dsValidRaw, dsTestRaw])
 
+    tfObjs.tph = DefineTFPlaceHolders(dsTrainRaw.GetDSNumLabels())
+    TrainingPipeline(dsTrainNormComplete, dsValidNorm, tfObjs, numEpochs, batchSize)
+
+    #TrainingPipeline(dsTrainNorm, dsValidNorm, tfObjs, numEpochs, batchSize)
+    EvalDataSets([dsTrainNormComplete, dsValidNorm, dsTestNorm], tfObjs, batchSize)
+
+    # Extra dataset
     dsExtraRaw = CreateDataSetFromImageFiles(g_finalTestFilesDirIn, dictIDToLabel)
     signplot.LabeledSampleImages(dsExtraRaw)
 
-    dsExtraNorm, = GrayscaleNormalizeRawDataSets([dsExtraRaw])
-    EvalDataSets([dsExtraNorm], g_tfObjs, batchSize)
-
-    topk = CalcSoftmaxTopK(dsExtraNorm, g_tfObjs)
+    dsExtraNorm, = NormalizeDataSets([dsExtraRaw])
+    EvalDataSets([dsExtraNorm], tfObjs, batchSize)
+    topk = CalcSoftmaxTopK(dsExtraNorm, tfObjs)
     signplot.PredictionComparison(dsExtraRaw, dsTrainRaw, topk)
 
 #====================== Main Invocation =====================

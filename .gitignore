@@ -1,6 +1,8 @@
 # -*- mode: gitignore; -*-
 
 Assets/training
+Assets/GTSRB
+Assets/tfSessionSaves
 data
 
 nohup.out

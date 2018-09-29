@@ -155,10 +155,29 @@ def SingleImage(imgIn, title="TestImg"):
 
     fig = plt.figure(figsize=(15, 5))
     ax = plt.gca()
-    #plt.imshow(imgIn, interpolation='sinc')  # interpolation='sinc', vmin=0.0, vmax=255.0, cmap="viridis"
     ax.imshow(imgIn, interpolation='sinc', )  # interpolation='sinc', vmin=0.0, vmax=255.0, cmap="viridis"
     ax.set_title(title, fontsize=12)
     plt.tight_layout(pad=-0.4) # (pad=-0.75 w_pad=0.5, h_pad=1.0)
+    plt.show()
+
+#--------------------------------- SimpleMultiImage
+def SimpleMultiImage(imgInList, figtitle="TestImg"):
+    figsize = (9, 3)
+
+    plotNumCols= len(imgInList)
+    plotNumRows = 1
+
+    fig, axes = plt.subplots(plotNumRows, plotNumCols, figsize=figsize, subplot_kw={'xticks': [], 'yticks': []})
+    fig.suptitle(figtitle, fontsize=16)
+
+    for (imageIndex, (ax, imgOut)) in enumerate(zip(axes.flat, imgInList)):
+        #imgOut = imgInList[imageIndex]
+        title = "img[{}]".format(imageIndex)
+        #ax.set_ylabel(ylabel, fontsize=9)
+        ax.set_title(title, fontsize=12)
+        ax.imshow(imgOut, interpolation='sinc') #dsIn.X[imageIndex]
+
+    plt.tight_layout() # (pad=-0.75 w_pad=0.5, h_pad=1.0)
     plt.show()
 
 
@@ -227,7 +246,7 @@ def NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw, title="Number 
     fig = plt.figure(figsize=(15, 5))
     fig.suptitle(title)
     bins=np.arange(dsTrainRaw.numLabels+1)-0.5
-    plt.hist((dsTrainRaw.y, dsValidRaw.y, dsTestRaw.y), bins = bins, label = ("train", "test", "valid"))
+    plt.hist((dsTrainRaw.y, dsTestRaw.y, dsValidRaw.y), bins = bins, label = ("train", "test", "valid"))
     plt.legend()
     plt.xticks(imageLabelIDs)
     ax = plt.gca()

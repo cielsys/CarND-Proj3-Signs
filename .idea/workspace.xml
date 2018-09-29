@@ -2,18 +2,20 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="783049a9-98cc-41e2-bd12-df7bb062d938" name="Default Changelist" comment="">
-      <change afterPath="$PROJECT_DIR$/p3signs.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Traffic_Sign_Classifier original.ipynb" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Traffic_sign_Classifier.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/ctrainingdataset.py" beforeDir="false" afterPath="$PROJECT_DIR$/ctrainingdataset.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Assets/visualize_cnn.png" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Traffic_Sign_Classifier.ipynb" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/CarND-LeNet-Lab/LeNet-Lab-Solution.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/junk/CarND-LeNet-Lab/LeNet-Lab-Solution.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/TensorFlow-Examples/examples/3_NeuralNetworks/multilayer_perceptron.py" beforeDir="false" afterPath="$PROJECT_DIR$/junk/TensorFlow-Examples/examples/3_NeuralNetworks/multilayer_perceptron.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/TensorFlow-Examples/notebooks/3_NeuralNetworks/neural_network.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/junk/TensorFlow-Examples/notebooks/3_NeuralNetworks/neural_network.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/abha/Traffic_Sign_Classifier.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/junk/abha/Traffic_Sign_Classifier.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/asad/Traffic_Sign_Classifier.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/junk/asad/Traffic_Sign_Classifier.ipynb" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p3signs.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/p3signsNB.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/p3signs.py" beforeDir="false" afterPath="$PROJECT_DIR$/p3signs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/writeup_template.md" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/p3signsNB.html" beforeDir="false" afterPath="$PROJECT_DIR$/p3signsNB.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/p3signsNB.py" beforeDir="false" afterPath="$PROJECT_DIR$/p3signsNB.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/signplot.py" beforeDir="false" afterPath="$PROJECT_DIR$/signplot.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/writeup.md" beforeDir="false" afterPath="$PROJECT_DIR$/writeup.md" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -43,42 +45,79 @@
       <usages-collector id="statistics.file.extensions.open">
         <counts>
           <entry key="ipynb" value="15" />
-          <entry key="md" value="4" />
-          <entry key="py" value="52" />
+          <entry key="md" value="6" />
+          <entry key="py" value="56" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.open">
         <counts>
           <entry key="IPNB" value="15" />
-          <entry key="Markdown" value="4" />
-          <entry key="Python" value="52" />
+          <entry key="Markdown" value="6" />
+          <entry key="Python" value="56" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
-          <entry key="dummy" value="187" />
-          <entry key="md" value="122" />
-          <entry key="py" value="16143" />
+          <entry key="dummy" value="189" />
+          <entry key="md" value="11350" />
+          <entry key="py" value="16637" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Markdown" value="122" />
-          <entry key="PLAIN_TEXT" value="187" />
-          <entry key="Python" value="16143" />
+          <entry key="Markdown" value="11350" />
+          <entry key="PLAIN_TEXT" value="189" />
+          <entry key="Python" value="16637" />
         </counts>
       </usages-collector>
     </session>
   </component>
   <component name="FileEditorManager">
-    <splitter split-orientation="horizontal" split-proportion="0.51136786">
+    <splitter split-orientation="vertical" split-proportion="0.6587971">
       <split-first>
         <leaf SIDE_TABS_SIZE_LIMIT_KEY="375">
-          <file pinned="false" current-in-tab="true">
+          <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/p3signs.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="863">
-                  <caret line="471" lean-forward="true" selection-start-line="471" selection-end-line="471" />
+                <state relative-caret-position="14">
+                  <caret line="448" selection-start-line="448" selection-end-line="448" />
+                  <folding>
+                    <element signature="e#0#9#0" expanded="true" />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="true">
+            <entry file="file://$PROJECT_DIR$/writeup.md">
+              <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+                <state split_layout="SPLIT">
+                  <first_editor relative-caret-position="236">
+                    <caret line="71" column="54" selection-start-line="71" selection-start-column="54" selection-end-line="71" selection-end-column="54" />
+                  </first_editor>
+                  <second_editor />
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/signplot.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="363">
+                  <caret line="170" column="27" selection-start-line="170" selection-start-column="27" selection-end-line="170" selection-end-column="27" />
+                  <folding>
+                    <element signature="e#0#9#0" expanded="true" />
+                    <marker date="1538252422274" expanded="true" signature="5623:6652" ph="..." />
+                  </folding>
+                </state>
+              </provider>
+            </entry>
+          </file>
+          <file pinned="false" current-in-tab="false">
+            <entry file="file://$PROJECT_DIR$/ctrainingdataset.py">
+              <provider selected="true" editor-type-id="text-editor">
+                <state relative-caret-position="2250">
+                  <caret line="151" column="45" selection-start-line="151" selection-start-column="45" selection-end-line="151" selection-end-column="45" />
                   <folding>
                     <element signature="e#0#9#0" expanded="true" />
                   </folding>
@@ -89,12 +128,12 @@
         </leaf>
       </split-first>
       <split-second>
-        <leaf SIDE_TABS_SIZE_LIMIT_KEY="375">
-          <file pinned="false" current-in-tab="true">
+        <leaf>
+          <file pinned="false" current-in-tab="false">
             <entry file="file://$PROJECT_DIR$/p3signs.py">
               <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="845">
-                  <caret line="304" column="167" selection-start-line="304" selection-start-column="167" selection-end-line="304" selection-end-column="167" />
+                <state relative-caret-position="296">
+                  <caret line="486" column="79" lean-forward="true" selection-start-line="486" selection-start-column="79" selection-end-line="486" selection-end-column="79" />
                   <folding>
                     <element signature="e#0#9#0" expanded="true" />
                   </folding>
@@ -102,38 +141,14 @@
               </provider>
             </entry>
           </file>
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/ctrainingdataset.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="732">
-                  <caret line="67" selection-start-line="67" selection-end-line="67" />
-                  <folding>
-                    <element signature="e#0#9#0" expanded="true" />
-                    <marker date="1538171156862" expanded="true" signature="2124:2357" ph="..." />
-                    <marker date="1538171156862" expanded="true" signature="2439:2880" ph="..." />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/signplot.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="-2827">
-                  <caret line="8" selection-start-line="8" selection-end-line="8" />
-                  <folding>
-                    <element signature="e#0#9#0" expanded="true" />
-                    <marker date="1538153727399" expanded="true" signature="5623:6037" ph="..." />
-                  </folding>
-                </state>
-              </provider>
-            </entry>
-          </file>
-          <file pinned="false" current-in-tab="false">
-            <entry file="file://$PROJECT_DIR$/junk/junk.py">
-              <provider selected="true" editor-type-id="text-editor">
-                <state relative-caret-position="1385">
-                  <caret line="359" selection-start-line="359" selection-end-line="359" />
+          <file pinned="false" current-in-tab="true">
+            <entry file="file://$PROJECT_DIR$/writeup.md">
+              <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+                <state split_layout="SPLIT">
+                  <first_editor relative-caret-position="256">
+                    <caret line="379" column="61" lean-forward="true" selection-start-line="379" selection-start-column="61" selection-end-line="379" selection-end-column="61" />
+                  </first_editor>
+                  <second_editor />
                 </state>
               </provider>
             </entry>
@@ -152,11 +167,6 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>EPOC</find>
-      <find>logits</find>
-      <find>lenet'</find>
-      <find>tph_XItems</find>
-      <find>n_train</find>
       <find>Original X</find>
       <find>ShuffleRawInPlace</find>
       <find>feed_dict</find>
@@ -182,6 +192,11 @@
       <find>g_</find>
       <find>testing_file</find>
       <find>pickl</find>
+      <find>PASS</find>
+      <find>traininR</find>
+      <find>brigh</find>
+      <find>image9</find>
+      <find>hist</find>
     </findStrings>
     <replaceStrings>
       <replace>g_trainSets.y_</replace>
@@ -194,6 +209,8 @@
       <replace>g_tfObjs.tph.</replace>
       <replace>np.random</replace>
       <replace>g_Args.</replace>
+      <replace>gArgs</replace>
+      <replace>extraimages</replace>
     </replaceStrings>
   </component>
   <component name="Git.Settings">
@@ -207,25 +224,25 @@
     <option name="CHANGED_PATHS">
       <list>
         <option value="$PROJECT_DIR$/README.md" />
-        <option value="$PROJECT_DIR$/writeup.md" />
         <option value="$PROJECT_DIR$/Traffic_Sign_Classifier.ipynb" />
         <option value="$PROJECT_DIR$/exercises.py" />
         <option value="$PROJECT_DIR$/junk/TensorFlow-Examples/examples/3_NeuralNetworks/multilayer_perceptron.py" />
         <option value="$PROJECT_DIR$/check.py" />
         <option value="$PROJECT_DIR$/junk.py" />
         <option value="$PROJECT_DIR$/junk/alex.py" />
-        <option value="$PROJECT_DIR$/signplot.py" />
         <option value="$PROJECT_DIR$/p3signs.ipynb" />
         <option value="$PROJECT_DIR$/ctrainingdataset.py" />
         <option value="$PROJECT_DIR$/junk/junk.py" />
+        <option value="$PROJECT_DIR$/signplot.py" />
         <option value="$PROJECT_DIR$/p3signs.py" />
+        <option value="$PROJECT_DIR$/writeup.md" />
       </list>
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="3385" />
-    <option name="width" value="2328" />
-    <option name="height" value="2115" />
+    <option name="x" value="3057" />
+    <option name="width" value="2703" />
+    <option name="height" value="2163" />
   </component>
   <component name="ProjectInspectionProfilesVisibleTreeState">
     <entry key="Project Default">
@@ -416,15 +433,15 @@
     <servers />
   </component>
   <component name="ToolWindowManager">
-    <frame x="3385" y="0" width="2328" height="2115" extended-state="0" />
+    <frame x="3057" y="0" width="2703" height="2163" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.07695671" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.087903835" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.14100571" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.22343183" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.10015175" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.22602385" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -448,6 +465,11 @@
           <url>file://$PROJECT_DIR$/ctrainingdataset.py</url>
           <line>66</line>
           <option name="timeStamp" value="132" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/signplot.py</url>
+          <line>202</line>
+          <option name="timeStamp" value="133" />
         </line-breakpoint>
       </breakpoints>
       <breakpoints-dialog>
@@ -540,16 +562,6 @@
     </expressions>
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/writeup.md">
-      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
-        <state split_layout="SPLIT">
-          <first_editor relative-caret-position="1301">
-            <caret line="160" lean-forward="true" selection-start-line="160" selection-end-line="160" />
-          </first_editor>
-          <second_editor />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/README.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="SPLIT">
@@ -708,50 +720,58 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/signplot.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-2827">
-          <caret line="8" selection-start-line="8" selection-end-line="8" />
-          <folding>
-            <element signature="e#0#9#0" expanded="true" />
-            <marker date="1538153727399" expanded="true" signature="5623:6037" ph="..." />
-          </folding>
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/p3signs.ipynb">
+    <entry file="file://$PROJECT_DIR$/p3signsNB.ipynb">
       <provider selected="true" editor-type-id="ipnb-editor">
         <state>
           <selected id="3" />
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/junk/junk.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="1547">
+          <caret line="359" selection-start-line="359" selection-end-line="359" />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/ctrainingdataset.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="732">
-          <caret line="67" selection-start-line="67" selection-end-line="67" />
+        <state relative-caret-position="2250">
+          <caret line="151" column="45" selection-start-line="151" selection-start-column="45" selection-end-line="151" selection-end-column="45" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
-            <marker date="1538171156862" expanded="true" signature="2124:2357" ph="..." />
-            <marker date="1538171156862" expanded="true" signature="2439:2880" ph="..." />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/junk/junk.py">
+    <entry file="file://$PROJECT_DIR$/signplot.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1385">
-          <caret line="359" selection-start-line="359" selection-end-line="359" />
+        <state relative-caret-position="363">
+          <caret line="170" column="27" selection-start-line="170" selection-start-column="27" selection-end-line="170" selection-end-column="27" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+            <marker date="1538252422274" expanded="true" signature="5623:6652" ph="..." />
+          </folding>
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/p3signs.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="863">
-          <caret line="471" lean-forward="true" selection-start-line="471" selection-end-line="471" />
+        <state relative-caret-position="14">
+          <caret line="448" selection-start-line="448" selection-end-line="448" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/writeup.md">
+      <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+        <state split_layout="SPLIT">
+          <first_editor relative-caret-position="236">
+            <caret line="71" column="54" selection-start-line="71" selection-start-column="54" selection-end-line="71" selection-end-column="54" />
+          </first_editor>
+          <second_editor />
         </state>
       </provider>
     </entry>

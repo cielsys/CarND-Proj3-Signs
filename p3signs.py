@@ -25,7 +25,7 @@ seed = np.random.randint(42)
 def GetgArgs():
     gArgs = type("GlobalArgsContainer", (object,), {})
     
-    gArgs.numEpochs = 10
+    gArgs.numEpochs = 2
     gArgs.batchSize = 128
     gArgs.trainRate = 0.001
     
@@ -34,10 +34,10 @@ def GetgArgs():
     # For debug testing only
     gArgs.truncatedTrainingSetSize = 0 # Default: 0 (Use full training sets). Truncation is for speedup of debug cycle
     gArgs.doTrainModel = True
-    gArgs.doSaveModel = True
+    gArgs.doSaveModel = False
     
-    gArgs.doComputeAugments = False # Otherwise loads from file
-    gArgs.doSaveTrainCompleteFile = True
+    gArgs.doComputeAugments = True # Otherwise loads from file
+    gArgs.doSaveTrainCompleteFile = False
     
     # I/O Directories
     gArgs.trainingFilesDirIn = "./Assets/training/"
@@ -95,7 +95,7 @@ def NormalizeImageTensor(Xin, doConvertGray):
 
 # --------------------------------- NormalizeDataSets
 def NormalizeDataSets(listDSRaw, doConvertGray):
-    print ("\nNormalizing...convertGrayScale =={}. ".format(doConvertGray), end='', flush=True)
+    print ("\nNormalizing... convertGrayScale == {}. ".format(doConvertGray), end='', flush=True)
     timerStart = time.time()
 
     listDSNorm = []
@@ -209,7 +209,7 @@ def TrainingPipeline(dsTrainNorm, dsValidNorm, tfObjs, gArgs):
             sess.run(tf.global_variables_initializer())
             num_examples = dsTrainNorm.count
 
-            print("\nTraining for {} Epochs...".format(gArgs.numEpochs))
+            print("\nTraining: Epochs={}, TrainRate={}, BatchSize={} ...".format(gArgs.numEpochs, gArgs.trainRate, gArgs.batchSize))
 
             for i in range(gArgs.numEpochs):
                 dsShuffled_X, dsShuffled_y = sklearn.utils.shuffle(dsTrainNorm.X, dsTrainNorm.y)
@@ -221,8 +221,8 @@ def TrainingPipeline(dsTrainNorm, dsValidNorm, tfObjs, gArgs):
                     dictFeed = {
                         tfObjs.tph.XItems: batch_X,
                         tfObjs.tph.yLabels: batch_y,
-                        tfObjs.tph.fc1_dropout_keep_rate: 0.4,
-                        tfObjs.tph.fc2_dropout_keep_rate: 0.4
+                        tfObjs.tph.fc1_dropout_keep_rate: 0.55,
+                        tfObjs.tph.fc2_dropout_keep_rate: 0.55,
                     }
                     sess.run(training_operation, feed_dict=dictFeed)
 
@@ -302,8 +302,10 @@ def CalcSoftmaxTopK(dsInNorm, tfObjs, gArgs):
         topk = sess.run(tf.nn.top_k(tf.constant(sfmax), k=3))
 
         for imageIndex in range(dsInNorm.count):
+            pfStr = "PASS!" if topk[1][imageIndex][0] == dsInNorm.y[imageIndex] else "FAIL."
             recStr = "Image[{}]=({:>10}) type {:02}: '{}'. ".format(imageIndex, dsInNorm.imageNames[imageIndex], dsInNorm.y[imageIndex], dsInNorm.yStrings[imageIndex])
-            print(recStr, "Top 3 Match IDs{} => probabilites: {}".format(topk[1][imageIndex], topk[0][imageIndex]))
+            print(recStr)
+            print("     {} Top 3 Match IDs{} => probabilites: {}".format(pfStr, topk[1][imageIndex], topk[0][imageIndex]))
 
     return topk
 
@@ -343,7 +345,7 @@ def AugmentImage(Xin, rotAngleMaxDeg=10):
 
 
     #################### RANDOM BRIGHTNESS SHIFT
-    XBright = tf.map_fn(lambda img: tf.image.random_brightness(img, max_delta=0.3),  XRot, dtype=tf.uint8)
+    XBright = tf.map_fn(lambda img: tf.image.random_brightness(img, max_delta=0.1),  XRot, dtype=tf.uint8)
     #XBright = tf.image.random_brightness(XRot, tRandomBright)
 
     with tf.Session() as sess:
@@ -437,13 +439,20 @@ def CreateAugmentedDataSets(dsIn):
     print("Done. {} aug images added to {} ds {} for a total of {}".format(dsOutAugments.count, dsIn.count, dsIn.name, dsComplete.count))
     return listDSInSegregated, listDSAugmentsSegregated, dsOutAugments, dsComplete
 
+# ******** DEBUG *************
+#imgList = [listDSInSegregated[0].X[0], listDSOutAugmentedSegregated[0].X[0], listDSOutAugmentedSegregated[0].X[1],
+#           listDSOutAugmentedSegregated[0].X[2]]
+#signplot.SimpleMultiImage(imgList, "Original => 3 Sample Augments")
+#quit()  # ******** DEBUG *************
+
+
+
 #====================== Main() =====================
 def Main(gArgs):
 
     #################### Sort-of global object containers
     tfObjs = type("TensorFlowObjectsContainer", (object,), {})
     tfObjs.tph = None  # Assigned in DefineTFPlaceHolders()
-
 
 
     #################### READ DATASETS
@@ -491,3 +500,4 @@ def Main(gArgs):
 #====================== Main Invocation =====================
 if ((__name__ == '__main__')):
     Main(GetgArgs())
+

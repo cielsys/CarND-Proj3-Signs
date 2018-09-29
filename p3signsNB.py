@@ -1,7 +1,7 @@
 
 # coding: utf-8
 
-# In[3]:
+# In[1]:
 
 
 # Local Imports
@@ -16,26 +16,13 @@ get_ipython().magic('aimport signplot')
 get_ipython().magic('aimport p3signs')
 
 
-# In[ ]:
+# In[2]:
 
 
 get_ipython().run_cell_magic('HTML', '', '<style> code {background-color : orange !important;} </style>\nfrom IPython.core.display import display, HTML\njnk = display(HTML("<style>.container { width:100% !important; }</style>"))')
 
 
-# In[7]:
-
-
-#====================== GLOBALS =====================
-g_Args = p3signs.GetgArgs()
-g_Args.numEpochs = 22
-g_Args.batchSize = 128
-g_Args.trainRate = 0.001
-g_Args.doConvertGray = True
-
-signplot.g_doShowPlots = True
-
-
-# In[5]:
+# In[3]:
 
 
 get_ipython().magic('autoreload 1')
@@ -51,7 +38,7 @@ def Main(gArgs):
     dictIDToLabel = p3signs.ReadLabelDict(gArgs.signLabelsCSVFileIn)
     dsTrainRaw, dsValidRaw, dsTestRaw = p3signs.ReadTrainingSets(gArgs.trainingFileIn, gArgs.validationFileIn, gArgs.testingFileIn, dictIDToLabel, truncatedTrainingSetSize = gArgs.truncatedTrainingSetSize)
     signplot.LabeledSampleImages(dsTrainRaw)
-    signplot.NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw)
+    signplot.NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw, title="Number Of Training Images")
     
 
     
@@ -67,7 +54,7 @@ def Main(gArgs):
         print("Loading augment complete file {}".format(gArgs.trainingCompleteFile))
         dsTrainComplete = p3signs.CTrainingDataSet(name="TrainComplete", pickleFileNameIn = gArgs.trainingCompleteFile, dictIDToLabel = dictIDToLabel)
 
-    signplot.NumTrainingImagesHistogram(dsTrainComplete, dsValidRaw, dsTestRaw)
+    signplot.NumTrainingImagesHistogram(dsTrainComplete, dsValidRaw, dsTestRaw, title="Number Of AUGMENTED Training Images")
 
     
     
@@ -90,10 +77,19 @@ def Main(gArgs):
 
 
 
-# In[8]:
+# In[6]:
 
 
 get_ipython().magic('autoreload 1')
+
+#====================== GLOBALS =====================
+g_Args = p3signs.GetgArgs()
+g_Args.numEpochs = 22
+g_Args.batchSize = 128
+g_Args.trainRate = 0.0009
+g_Args.doConvertGray = True
+
+signplot.g_doShowPlots = True
 
 #====================== Main Invocation =====================
 Main(g_Args)

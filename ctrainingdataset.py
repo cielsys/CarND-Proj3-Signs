@@ -46,8 +46,9 @@ class CTrainingDataSet():
 
     #--------------------------------- ReadPickleFile
     def ReadPickleFile(self, pickleFileNameIn):
-        with open(pickleFileNameIn, mode='rb') as f:
-            dictDS = pickle.load(f)
+        with open(pickleFileNameIn, mode='rb') as fhandle:
+            dictDS = pickle.load(fhandle)
+
             self.X, self.y = dictDS['features'], dictDS['labels']
             self.yStrings = [self.dictIDToLabel[yval] for yval in self.y]
             self.count = len(self.y)
@@ -57,7 +58,16 @@ class CTrainingDataSet():
             if (g_ConvertImagesToTensors):
                 self.X = tf.image.convert_image_dtype(self.X, dtype=tf.float32)
 
-    #--------------------------------- Concatenate
+    #--------------------------------- WritePickleFile
+    def WritePickleFile(self, pickleFileNameOut):
+        dictDS = {
+            "features": self.X,
+            "labels": self.y,
+        }
+        with open(pickleFileNameOut, 'wb') as handle:
+            pickle.dump(dictDS, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+            #--------------------------------- Concatenate
     def Concatenate(self, dsOther):
         # self.X.concatenate(dsOther.X)
         self.X = np.concatenate([self.X, dsOther.X])
@@ -93,7 +103,7 @@ class CTrainingDataSet():
         
         for index in range(self.count):
             cury = self.y[index]
-            print("image({:05})->y({:02})".format(index,cury), end='\r', flush=True)
+            #print("image({:05})->y({:02})".format(index,cury), end='\r', flush=True)
             segSetCur = listDSSegregated[cury]
 
             segSetCur.X.append(self.X[index])

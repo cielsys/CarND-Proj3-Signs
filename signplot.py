@@ -217,7 +217,7 @@ def PlotListOfDataSets(dataSetsList, figtitle=None):
     plt.show()
 
 #--------------------------------- compute_normal_histograms
-def NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw):
+def NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw, title="Number Of Training Images"):
     if not g_doShowPlots:
         return
 
@@ -225,7 +225,7 @@ def NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw):
     imageLabelIDs, imageIndices = np.unique(dsTrainRaw.y, return_index=True)
 
     fig = plt.figure(figsize=(15, 5))
-    fig.suptitle("Number of training images")
+    fig.suptitle(title)
     bins=np.arange(dsTrainRaw.numLabels+1)-0.5
     plt.hist((dsTrainRaw.y, dsValidRaw.y, dsTestRaw.y), bins = bins, label = ("train", "test", "valid"))
     plt.legend()

@@ -4,15 +4,9 @@ import pickle
 import csv
 import math
 import time
-import re
-from collections import OrderedDict
 import copy
 
 import numpy as np
-#import matplotlib
-#import matplotlib.image
-#import matplotlib.image as mpimg
-
 import sklearn.utils
 import tensorflow as tf
 from tensorflow.contrib.layers import flatten
@@ -23,33 +17,42 @@ import skimage.transform
 from ctrainingdataset import CTrainingDataSet, CreateDataSetFromImageFiles, ReadTrainingSets, ReadLabelDict
 import signplot
 
-signplot.g_doShowPlots = False
+signplot.g_doShowPlots = True
 
 #====================== GLOBALS =====================
 seed = np.random.randint(42)
 
-g_NUM_EPOCHS = 22
-g_BATCH_SIZE = 128
-g_TRAINRATE = 0.001
+def GetgArgs():
+    gArgs = type("GlobalArgsContainer", (object,), {})
+    
+    gArgs.numEpochs = 10
+    gArgs.batchSize = 128
+    gArgs.trainRate = 0.001
+    
+    gArgs.doConvertGray = True
+    
+    # For debug testing only
+    gArgs.truncatedTrainingSetSize = 0 # Default: 0 (Use full training sets). Truncation is for speedup of debug cycle
+    gArgs.doTrainModel = True
+    gArgs.doSaveModel = True
+    
+    gArgs.doComputeAugments = False # Otherwise loads from file
+    gArgs.doSaveTrainCompleteFile = True
+    
+    # I/O Directories
+    gArgs.trainingFilesDirIn = "./Assets/training/"
+    gArgs.finalTestFilesDirIn = "./Assets/finalTest/"
+    gArgs.sessionSavesDir = "./Assets/tfSessionSaves/"
+    
+    # Input files
+    gArgs.sessionSavesName = gArgs.sessionSavesDir + "lenet"
+    gArgs.signLabelsCSVFileIn = gArgs.trainingFilesDirIn + "signnames.csv"
+    gArgs.trainingFileIn = gArgs.trainingFilesDirIn + "train.p"
+    gArgs.validationFileIn = gArgs.trainingFilesDirIn + "valid.p"
+    gArgs.testingFileIn = gArgs.trainingFilesDirIn + "test.p"
+    gArgs.trainingCompleteFile = gArgs.trainingFilesDirIn + "trainComplete.p"
 
-g_doConvertGray = True
-
-# For debug testing only
-g_truncatedTrainingSetSize = 0 # Default: 0 (Use full training sets). Truncation is for speedup of debug cycle
-g_doTrainModel = True
-g_doSaveModel = True
-
-# I/O Directories
-g_TrainingFilesDirIn = "./Assets/training/"
-g_finalTestFilesDirIn = "./Assets/finalTest/"
-g_sessionSavesDir = "./Assets/tfSessionSaves/"
-
-# Input files
-g_sessionSavesName = g_sessionSavesDir + "lenet"
-g_signLabelsCSVFileIn = g_TrainingFilesDirIn + "signnames.csv"
-g_training_file = g_TrainingFilesDirIn + "train.p"
-g_validation_file = g_TrainingFilesDirIn + "valid.p"
-g_testing_file = g_TrainingFilesDirIn + "test.p"
+    return gArgs
 
 #====================== CODE =====================
 
@@ -64,8 +67,8 @@ def checkGPU():
 #checkGPU()
 
 #--------------------------------- GetNumRawInputChannels
-def GetNumRawInputChannels():
-    numRawInputChannels = 1 if g_doConvertGray else 3
+def GetNumRawInputChannels(gArgs):
+    numRawInputChannels = 1 if gArgs.doConvertGray else 3
     return numRawInputChannels
 
 #--------------------------------- Normalize
@@ -75,17 +78,15 @@ def GreyScale(Xin):
     print("done.")
     return(Xout)
 
-
 #--------------------------------- Normalize
-def NormalizeImageTensor(Xin):
+def NormalizeImageTensor(Xin, doConvertGray):
     #XInfloat = tf.cast(Xin, dtype=tf.float32)
 
-    if g_doConvertGray:
+    if doConvertGray:
         Xin = tf.image.rgb_to_grayscale(Xin)
 
     XNorm = tf.map_fn(lambda img: tf.image.per_image_standardization(img),  Xin, dtype=tf.float32)
 
-    # Convert back to ndarray
     Xout = []
     with tf.Session() as sess:
        Xout = XNorm.eval()
@@ -93,15 +94,15 @@ def NormalizeImageTensor(Xin):
     return Xout
 
 # --------------------------------- NormalizeDataSets
-def NormalizeDataSets(listDSRaw):
-    print ("\nNormalizing...convertGrayScale =={}. ".format(g_doConvertGray), end='', flush=True)
+def NormalizeDataSets(listDSRaw, doConvertGray):
+    print ("\nNormalizing...convertGrayScale =={}. ".format(doConvertGray), end='', flush=True)
     timerStart = time.time()
 
     listDSNorm = []
 
     for dsRaw in listDSRaw:
         dsNorm = copy.copy(dsRaw)
-        dsNorm.X = NormalizeImageTensor(dsRaw.X)
+        dsNorm.X = NormalizeImageTensor(dsRaw.X, doConvertGray)
         dsNorm.name += "Norm"
         listDSNorm.append(dsNorm)
 
@@ -111,10 +112,10 @@ def NormalizeDataSets(listDSRaw):
     return listDSNorm
 
 #--------------------------------- TrainingPipeline
-def DefineTFPlaceHolders(numLabels):
+def DefineTFPlaceHolders(numLabels, gArgs):
     tph = type("TensorFlowPlaceholders", (object,), {})
 
-    numRawInputChannels = GetNumRawInputChannels()
+    numRawInputChannels = GetNumRawInputChannels(gArgs)
     tph.XItems = tf.placeholder(tf.float32, (None, 32, 32, numRawInputChannels))
     tph.yLabels = tf.placeholder(tf.int32, (None))
     tph.one_hot_y = tf.one_hot(tph.yLabels, numLabels)
@@ -124,12 +125,10 @@ def DefineTFPlaceHolders(numLabels):
     return tph
 
 # --------------------------------- LeNet
-def LeNet(tph, numLabels):
+def LeNet(tph, numLabels, numRawInputChannels):
     # Arguments used for tf.truncated_normal, randomly defines variables for the weights and biases for each layer
     mu = 0
     sigma = 0.1
-
-    numRawInputChannels = GetNumRawInputChannels()
 
     # SOLUTION: Layer 1: Convolutional. Input = 32x32x[1|3]. Output = 28x28x6.
     conv1_W = tf.Variable(tf.truncated_normal(shape=(5, 5, numRawInputChannels, 6), mean=mu, stddev=sigma))
@@ -184,17 +183,18 @@ def LeNet(tph, numLabels):
     return logits
 
 #--------------------------------- TrainingPipeline
-def TrainingPipeline(dsTrainNorm, dsValidNorm, tfObjs, numEpochs, batchSize):
+def TrainingPipeline(dsTrainNorm, dsValidNorm, tfObjs, gArgs):
     '''
     Training Pipeline
     '''
 
     numLabels = dsTrainNorm.GetDSNumLabels()
+    numRawInputChannels = GetNumRawInputChannels(gArgs)
 
-    tfObjs.logits = LeNet(tfObjs.tph, numLabels)
+    tfObjs.logits = LeNet(tfObjs.tph, numLabels, numRawInputChannels)
     cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=tfObjs.tph.one_hot_y, logits=tfObjs.logits)
     loss_operation = tf.reduce_mean(cross_entropy)
-    optimizer = tf.train.AdamOptimizer(learning_rate = g_TRAINRATE)
+    optimizer = tf.train.AdamOptimizer(learning_rate = gArgs.trainRate)
     training_operation = optimizer.minimize(loss_operation)
 
     #Model Evaluation
@@ -202,20 +202,20 @@ def TrainingPipeline(dsTrainNorm, dsValidNorm, tfObjs, numEpochs, batchSize):
     tfObjs.accuracy_operation = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     tfObjs.saver = tf.train.Saver()
 
-    if g_doTrainModel:
+    if gArgs.doTrainModel:
         timerStart = time.time()
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
             num_examples = dsTrainNorm.count
 
-            print("\nTraining for {} Epochs...".format(numEpochs))
+            print("\nTraining for {} Epochs...".format(gArgs.numEpochs))
 
-            for i in range(numEpochs):
+            for i in range(gArgs.numEpochs):
                 dsShuffled_X, dsShuffled_y = sklearn.utils.shuffle(dsTrainNorm.X, dsTrainNorm.y)
 
-                for offset in range(0, num_examples, batchSize):
-                    end = offset + batchSize
+                for offset in range(0, num_examples, gArgs.batchSize):
+                    end = offset + gArgs.batchSize
                     batch_X, batch_y = dsShuffled_X[offset:end], dsShuffled_y[offset:end]
 
                     dictFeed = {
@@ -226,15 +226,15 @@ def TrainingPipeline(dsTrainNorm, dsValidNorm, tfObjs, numEpochs, batchSize):
                     }
                     sess.run(training_operation, feed_dict=dictFeed)
 
-                validation_accuracy = evaluate(dsValidNorm.X, dsValidNorm.y, tfObjs, batchSize)
+                validation_accuracy = evaluate(dsValidNorm.X, dsValidNorm.y, tfObjs, gArgs.batchSize)
                 print("Epoch {:02}... ".format(i + 1), end='', flush=True)
                 print("Validation Accuracy = {:.3f}".format(validation_accuracy))
 
             timerElapsedS = time.time() - timerStart
             print("Training took {:.2f} seconds".format(timerElapsedS))
 
-            if g_doSaveModel:
-                tfObjs.saver.save(sess, g_sessionSavesName)
+            if gArgs.doSaveModel:
+                tfObjs.saver.save(sess, gArgs.sessionSavesName)
                 print("Model saved")
             else:
                 print("Model NOT saved...skipped.")
@@ -266,35 +266,34 @@ def evaluate(X_data, y_data, tfObjs, batchSize):
     return total_accuracy / num_examples
 
 #--------------------------------- EvalDataSet
-def EvalDataSet(dsIn, tfObjs, batchSize):
+def EvalDataSet(dsIn, tfObjs, gArgs):
     with tf.Session() as sess:
-        tfObjs.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
-        test_accuracy = evaluate(dsIn.X, dsIn.y, tfObjs, batchSize)
+        tfObjs.saver.restore(sess, tf.train.latest_checkpoint(gArgs.sessionSavesDir))
+        test_accuracy = evaluate(dsIn.X, dsIn.y, tfObjs, gArgs.batchSize)
         dsIn.testAccuracy = test_accuracy
         return test_accuracy
 
 #--------------------------------- EvalDataSets
-def EvalDataSets(dsNormListIn, tfObjs, batchSize):
+def EvalDataSets(dsNormListIn, tfObjs, gArgs):
     print("\nEval Model on datasets")
 
     accuracyList = []
     for dsNormIn in dsNormListIn:
-        test_accuracy = EvalDataSet(dsNormIn, tfObjs, batchSize)
+        test_accuracy = EvalDataSet(dsNormIn, tfObjs, gArgs)
         print("Eval DataSet({}) Accuracy = {:.3f}".format(dsNormIn.name, test_accuracy))
         accuracyList.append(test_accuracy)
 
     return(accuracyList)
 
 #--------------------------------- CalcSoftmaxTopK
-def CalcSoftmaxTopK(dsInNorm, tfObjs):
-    print("\nCalcSoftmaxTopK({})".format(dsInNorm.name), end='', flush=True)
+def CalcSoftmaxTopK(dsInNorm, tfObjs, gArgs):
+    print("\nCalcSoftmaxTopK({})".format(dsInNorm.name))
 
     with tf.Session() as sess:
-        tfObjs.saver.restore(sess, tf.train.latest_checkpoint(g_sessionSavesDir))
+        tfObjs.saver.restore(sess, tf.train.latest_checkpoint(gArgs.sessionSavesDir))
 
         dictFeed = {
             tfObjs.tph.XItems: dsInNorm.X,
-            #y: batch_y,
             tfObjs.tph.fc1_dropout_keep_rate: 1.0,
             tfObjs.tph.fc2_dropout_keep_rate: 1.0,
         }
@@ -303,10 +302,8 @@ def CalcSoftmaxTopK(dsInNorm, tfObjs):
         topk = sess.run(tf.nn.top_k(tf.constant(sfmax), k=3))
 
         for imageIndex in range(dsInNorm.count):
-            recStr = "Image[{}]=({:>10}) type {:02}: '{}'".format(imageIndex, dsInNorm.imageNames[imageIndex], dsInNorm.y[imageIndex], dsInNorm.yStrings[imageIndex])
-            print(recStr)
-            print("Top 3 Match IDs{} => probabilites: {}".format(topk[1][imageIndex], topk[0][imageIndex]))
-            print()
+            recStr = "Image[{}]=({:>10}) type {:02}: '{}'. ".format(imageIndex, dsInNorm.imageNames[imageIndex], dsInNorm.y[imageIndex], dsInNorm.yStrings[imageIndex])
+            print(recStr, "Top 3 Match IDs{} => probabilites: {}".format(topk[1][imageIndex], topk[0][imageIndex]))
 
     return topk
 
@@ -411,8 +408,11 @@ def CreateAugmentedDataSets(dsIn):
         dsAugCur = CreateAugmentedDataSet(dsInSegCur, numAugsNeeded)
         listDSAugmentsSegregated.append(dsAugCur)
 
+    timerElapsedS = time.time() - timerStart
+    print("\nAugmentation Done in {:.1f} seconds".format(timerElapsedS))
 
 
+    print("Combining datasets...", end='', flush=True)
     # Unsegregate augments, then combine with originals to make complete training set
     dsOutAugments = copy.copy(dsIn)
     dsOutAugments.name = "Aug({})".format(dsIn.name)
@@ -434,49 +434,60 @@ def CreateAugmentedDataSets(dsIn):
     dsComplete.Concatenate(dsOutAugments)
     dsComplete.name += dsIn.name + "+Aug"
 
-    timerElapsedS = time.time() - timerStart
-    print("\nAugmentation Done in {:.1f} seconds".format(timerElapsedS))
-
+    print("Done. {} aug images added to {} ds {} for a total of {}".format(dsOutAugments.count, dsIn.count, dsIn.name, dsComplete.count))
     return listDSInSegregated, listDSAugmentsSegregated, dsOutAugments, dsComplete
 
-
 #====================== Main() =====================
-def Main():
-    numEpochs = g_NUM_EPOCHS
-    batchSize = g_BATCH_SIZE
-    # Sort-of global object containers
+def Main(gArgs):
+
+    #################### Sort-of global object containers
     tfObjs = type("TensorFlowObjectsContainer", (object,), {})
     tfObjs.tph = None  # Assigned in DefineTFPlaceHolders()
 
-    dictIDToLabel = ReadLabelDict(g_signLabelsCSVFileIn)
 
-    dsTrainRaw, dsValidRaw, dsTestRaw = ReadTrainingSets(g_training_file, g_validation_file, g_testing_file, dictIDToLabel, truncatedTrainingSetSize = g_truncatedTrainingSetSize)
 
-    listDSInSegregated, listDSOutAugmentedSegregated, dsOutAugments, dsTrainComplete = CreateAugmentedDataSets(dsTrainRaw)
-    signplot.PlotListOfDataSets(listDSOutAugmentedSegregated, "augments")# **************DEBUG****************
-
+    #################### READ DATASETS
+    dictIDToLabel = ReadLabelDict(gArgs.signLabelsCSVFileIn)
+    dsTrainRaw, dsValidRaw, dsTestRaw = ReadTrainingSets(gArgs.trainingFileIn, gArgs.validationFileIn, gArgs.testingFileIn, dictIDToLabel, truncatedTrainingSetSize = gArgs.truncatedTrainingSetSize)
 
     signplot.LabeledSampleImages(dsTrainRaw)
     signplot.NumTrainingImagesHistogram(dsTrainRaw, dsValidRaw, dsTestRaw)
 
-    #dsTrainNorm, dsValidNorm, dsTestNorm = NormalizeDataSets([dsTrainRaw, dsValidRaw, dsTestRaw])
-    dsTrainNormComplete, dsValidNorm, dsTestNorm = NormalizeDataSets([dsTrainComplete, dsValidRaw, dsTestRaw])
 
-    tfObjs.tph = DefineTFPlaceHolders(dsTrainRaw.GetDSNumLabels())
-    TrainingPipeline(dsTrainNormComplete, dsValidNorm, tfObjs, numEpochs, batchSize)
 
-    #TrainingPipeline(dsTrainNorm, dsValidNorm, tfObjs, numEpochs, batchSize)
-    EvalDataSets([dsTrainNormComplete, dsValidNorm, dsTestNorm], tfObjs, batchSize)
+    #################### CREATE AUGMENTS
+    if (gArgs.doComputeAugments):
+        listDSInSegregated, listDSOutAugmentedSegregated, dsOutAugments, dsTrainComplete = CreateAugmentedDataSets(dsTrainRaw)
+        signplot.PlotListOfDataSets(listDSOutAugmentedSegregated, "augments")
 
-    # Extra dataset
-    dsExtraRaw = CreateDataSetFromImageFiles(g_finalTestFilesDirIn, dictIDToLabel)
+        if(gArgs.doSaveTrainCompleteFile):
+            print("Saving augment complete file {}".format(gArgs.trainingCompleteFile))
+            dsTrainComplete.WritePickleFile(gArgs.trainingCompleteFile)
+    else:
+        print("Loading augment complete file {}".format(gArgs.trainingCompleteFile))
+        dsTrainComplete = CTrainingDataSet(name="TrainComplete", pickleFileNameIn = gArgs.trainingCompleteFile, dictIDToLabel = dictIDToLabel)
+
+    signplot.NumTrainingImagesHistogram(dsTrainComplete, dsValidRaw, dsTestRaw, title="Number Of Training Images AUGMENTED")
+
+
+
+    #################### NORM, TRAINING & EVAL
+    dsTrainNormComplete, dsValidNorm, dsTestNorm = NormalizeDataSets([dsTrainComplete, dsValidRaw, dsTestRaw], gArgs.doConvertGray)
+    tfObjs.tph = DefineTFPlaceHolders(dsTrainRaw.GetDSNumLabels(), gArgs)
+    TrainingPipeline(dsTrainNormComplete, dsValidNorm, tfObjs, gArgs)
+    EvalDataSets([dsTrainNormComplete, dsValidNorm, dsTestNorm], tfObjs, gArgs)
+
+
+
+    #################### EXTRA DATASET
+    dsExtraRaw = CreateDataSetFromImageFiles(gArgs.finalTestFilesDirIn, dictIDToLabel)
     signplot.LabeledSampleImages(dsExtraRaw)
 
-    dsExtraNorm, = NormalizeDataSets([dsExtraRaw])
-    EvalDataSets([dsExtraNorm], tfObjs, batchSize)
-    topk = CalcSoftmaxTopK(dsExtraNorm, tfObjs)
+    dsExtraNorm, = NormalizeDataSets([dsExtraRaw], gArgs.doConvertGray)
+    EvalDataSets([dsExtraNorm], tfObjs, gArgs)
+    topk = CalcSoftmaxTopK(dsExtraNorm, tfObjs, gArgs)
     signplot.PredictionComparison(dsExtraRaw, dsTrainRaw, topk)
 
 #====================== Main Invocation =====================
 if ((__name__ == '__main__')):
-    Main()
+    Main(GetgArgs())

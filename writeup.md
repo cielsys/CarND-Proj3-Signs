@@ -1,5 +1,6 @@
 # **Proj3: Neural Networks : Signs** 
 ### Submission writeup: ChrisL
+Resubmission  2108-09-29 (Same day) Notes at EndOfFile
 #### Reviewer Note:  
 
 The main file for this project is [p3signs.py](./p3signs.py) <br/>
@@ -235,7 +236,9 @@ My final model consisted of the following layers:
 #### 3. Model Training
 
 To train the model, I used AdamOptimizer that used mean cross entropy as the loss operation
-to be minimized. I used a variety of training rates and settled on a training rate of 
+to be minimized. Once again I used this optimizer soley because it was what worked
+in the LeNet lab.
+I used a variety of training rates and settled on a training rate of 
 0.0009 in the submitted html. I never altered the defaults of
 ```
 mu = 0
@@ -245,17 +248,40 @@ Again, selection based on the fact that we had a working version from teaching m
 labs
  
 
-#### 4. Model Tweaking
+#### 4. Model Tweaking, finding a solution.
+
 My approach was not disciplined. I tweaked mainly the main knobs of 
 * number of epochs, 
 * training rate and 
 * batch size as well
 as well as the 2 drop out rates. 
 
+My initial values were to duplicate those in the LeNet lab solution.
+During initial development I made gross adjustments to the values
+as I worked on other parts of the application - I barely paid attention except to find
+the deviant extremes that didn't work. I used this hapazard approach and by the time I had augmentation
+and dropout implemented I was already achieving 0.96 validation values
+with values near my final solution. 
+
+Part of the reason for my extensive refactor was to create codebase with which
+I could perform automated unattended test runs: 
+Pick a set of interesting parameters, ie 'knobs to turn'
+and select a range for each of them to test over then run the train/epoch eval with
+those parameters and record all the results. 
+Then look at the correlations
+between the parameters and the validation results to see what is clearly bad combinations
+or extremes. Then run the whole process again with the bad options eliminated and new finer
+variations of combination selected.
+
+Additionally comparing the [learning curve plots](https://www.dataquest.io/blog/learning-curves-machine-learning)
+of all these runs could help to see which parameters combinations 
+were yielding better accuracy conversion, again to help select new parameters for
+another train/eval test... 
+
 My dev computer is not too powerful, so training iterations were quite slow and 
 once I found a working set that hit the target of 0.93 accuracy for the test set
 I was, being overdue, not inclined to keep optimizing.
-I also created different agumented train sets with different rotations and bright shifts.
+I also created different augmented train sets with different rotations and bright shifts.
 
 My final model results were:
 
@@ -301,7 +327,21 @@ Image[7]=(    27.jpg) type 27: 'Pedestrians'.
      FAIL. Top 3 Match IDs[18 27 26] => probabilites: [ 0.95076025  0.04278374  0.00645582]
 ```
 
-The results on the extra images are disappointing. I do not have a good explanation. 
+#### 3. Extra image Eval Results Discussion.
+The 50% results on the extra images are disappointing. Here are some thoughts on why.
+1) **They aren't from test sets.**
+Of the test/train/validate images I saw I was surpised how many images were nearly
+identical to each other - the were frames from a video sequence. And I do not know how 
+those sets were segregated but it seems possible that with our small subset and
+the many duplications that we were overfitting to those 'kinds of images, and
+the extra test images were not of 'those kinds'
+
+2) The extra files a cleaner and brighter
+I was surprised by the low quality of the pictures from the provided sets. 
+There are many very dark images, very blurry images, very contrasty backgrounds and quite
+a few with parts of other signs. The extra test set is much cleaner, focused, bright and uniform.
+Perhaps it may be that the test set has been trained best for very poor quality issues.
+
 One thing of note is that the speed limit signs are nearly identical for an image classifier
 and my extra set contains 3 of them, which may account in part for the poor results.
 
@@ -358,13 +398,31 @@ The NVidia and tensorflow specifics were too complicated to record
 [German Trafﬁc Sign Recognition Benchmark] [GTSRB]<br/>
 
 
+### Resubmission Notes
+
+1. The reviewer asked
+```
+Please add some words on what was the process that you ended up with the final model, e.g. 
+what is the process of choosing batch size, number of layers? How do you choose the optimizer and why?
+What should you do if the model is either overfitting or underfitting?
+```
+This puts me in a bind because my first submission answered this: 
+*It was un disciplined trial and error.* But I will elaborate on how it happened and a more organzied
+way to go about it.
+
+
+2. Discuss the extra images
+I did. But I will more. See
+**3. Extra image Eval Results Discussion.** above.
+
 [//]: # (WWW References)
 [trainingsetdownload]: https://s3-us-west-1.amazonaws.com/udacity-selfdrivingcar/traffic-signs-data.zip
 [projectinstructions]: https://classroom.udacity.com/nanodegrees/nd013/parts/edf28735-efc1-4b99-8fbb-ba9c432239c8/modules/6b6c37bc-13a5-47c7-88ed-eb1fce9789a0/lessons/7ee8d0d4-561e-4101-8615-66e0ab8ea8c8/concepts/8cb6867c-f809-49b3-9bc1-afb409a112a7
 [GTSRB]: http://benchmark.ini.rub.de/?section=gtsrb&subsection=dataset
 
 [//]: # (Image References)
-[comment]: <> (html resizeable image tag)<img src='./Assets/examples/placeholder.png' width="480" alt="Combined Image" />
+
+[//]: # (html resizeable image tag <img src='./Assets/examples/placeholder.png' width="480" alt="Combined Image" />)
 
 [image1]: ./Assets/finalTest/01.jpg
 [image2]: ./Assets/finalTest/02.jpg
@@ -386,3 +444,4 @@ The NVidia and tensorflow specifics were too complicated to record
 [augmentssmall]:  ./Assets/writeupImages/SampleAugmentsSmall.png
 [augmentsbig]:  ./Assets/writeupImages/SampleAugmentsBig.png
 [extrapredictions]:  ./Assets/writeupImages/predictions.png
+

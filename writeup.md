@@ -1,8 +1,10 @@
-# **Proj3: Signs** 
+# **Proj3: Neural Networks : Signs** 
 ### Submission writeup: ChrisL
 #### Reviewer Note:  
+
 The main file for this project is [p3signs.py](./p3signs.py) <br/>
-and [p3signsNB.html](p3signsNB.html) is the the best file for reviewing the runtime results. <br/>
+and [p3signsNB.html](p3signsNB.html) is the the best file for reviewing the runtime results, 
+(but it is too large to view directly from github)<br/>
 See **Usage and Implementation Notes** for complete file and folder descriptions, below.
 ---
 <br/>

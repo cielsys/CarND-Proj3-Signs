@@ -2,19 +2,11 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="783049a9-98cc-41e2-bd12-df7bb062d938" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Assets/visualize_cnn.png" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Traffic_Sign_Classifier.ipynb" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/CarND-LeNet-Lab/LeNet-Lab-Solution.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/junk/CarND-LeNet-Lab/LeNet-Lab-Solution.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/TensorFlow-Examples/examples/3_NeuralNetworks/multilayer_perceptron.py" beforeDir="false" afterPath="$PROJECT_DIR$/junk/TensorFlow-Examples/examples/3_NeuralNetworks/multilayer_perceptron.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/TensorFlow-Examples/notebooks/3_NeuralNetworks/neural_network.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/junk/TensorFlow-Examples/notebooks/3_NeuralNetworks/neural_network.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/abha/Traffic_Sign_Classifier.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/junk/abha/Traffic_Sign_Classifier.ipynb" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/junk/asad/Traffic_Sign_Classifier.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/junk/asad/Traffic_Sign_Classifier.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p3signs.ipynb" beforeDir="false" afterPath="$PROJECT_DIR$/p3signsNB.ipynb" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p3signs.py" beforeDir="false" afterPath="$PROJECT_DIR$/p3signs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p3signsNB.html" beforeDir="false" afterPath="$PROJECT_DIR$/p3signsNB.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/p3signsNB.py" beforeDir="false" afterPath="$PROJECT_DIR$/p3signsNB.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/signplot.py" beforeDir="false" afterPath="$PROJECT_DIR$/signplot.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/writeup.md" beforeDir="false" afterPath="$PROJECT_DIR$/writeup.md" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
@@ -59,13 +51,13 @@
       <usages-collector id="statistics.file.extensions.edit">
         <counts>
           <entry key="dummy" value="189" />
-          <entry key="md" value="11350" />
+          <entry key="md" value="11424" />
           <entry key="py" value="16637" />
         </counts>
       </usages-collector>
       <usages-collector id="statistics.file.types.edit">
         <counts>
-          <entry key="Markdown" value="11350" />
+          <entry key="Markdown" value="11424" />
           <entry key="PLAIN_TEXT" value="189" />
           <entry key="Python" value="16637" />
         </counts>
@@ -92,8 +84,8 @@
             <entry file="file://$PROJECT_DIR$/writeup.md">
               <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
                 <state split_layout="SPLIT">
-                  <first_editor relative-caret-position="236">
-                    <caret line="71" column="54" selection-start-line="71" selection-start-column="54" selection-end-line="71" selection-end-column="54" />
+                  <first_editor relative-caret-position="216">
+                    <caret line="12" column="36" lean-forward="true" selection-start-line="12" selection-start-column="36" selection-end-line="12" selection-end-column="36" />
                   </first_editor>
                   <second_editor />
                 </state>
@@ -133,7 +125,7 @@
             <entry file="file://$PROJECT_DIR$/p3signs.py">
               <provider selected="true" editor-type-id="text-editor">
                 <state relative-caret-position="296">
-                  <caret line="486" column="79" lean-forward="true" selection-start-line="486" selection-start-column="79" selection-end-line="486" selection-end-column="79" />
+                  <caret line="486" column="79" selection-start-line="486" selection-start-column="79" selection-end-line="486" selection-end-column="79" />
                   <folding>
                     <element signature="e#0#9#0" expanded="true" />
                   </folding>
@@ -146,7 +138,7 @@
               <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
                 <state split_layout="SPLIT">
                   <first_editor relative-caret-position="256">
-                    <caret line="379" column="61" lean-forward="true" selection-start-line="379" selection-start-column="61" selection-end-line="379" selection-end-column="61" />
+                    <caret line="381" column="61" selection-start-line="381" selection-start-column="61" selection-end-line="381" selection-end-column="61" />
                   </first_editor>
                   <second_editor />
                 </state>
@@ -768,8 +760,8 @@
     <entry file="file://$PROJECT_DIR$/writeup.md">
       <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
         <state split_layout="SPLIT">
-          <first_editor relative-caret-position="236">
-            <caret line="71" column="54" selection-start-line="71" selection-start-column="54" selection-end-line="71" selection-end-column="54" />
+          <first_editor relative-caret-position="216">
+            <caret line="12" column="36" lean-forward="true" selection-start-line="12" selection-start-column="36" selection-end-line="12" selection-end-column="36" />
           </first_editor>
           <second_editor />
         </state>
